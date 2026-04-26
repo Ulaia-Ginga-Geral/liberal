@@ -65,7 +65,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
             <div className="flex justify-between items-start mb-16 pb-8 border-b-4 border-slate-950">
                <div className="flex items-center space-x-4">
                   <div className="w-20 h-14 flex items-center justify-center overflow-hidden">
-                     <img src="/partidoliberarbandeira.jpg" className="w-full h-full object-contain" />
+                     <img src="/partidoliberarbandeira.jpg" alt="Bandeira do Partido Liberal" className="w-full h-full object-contain" />
                   </div>
                   <div>
                      <h1 className="text-2xl font-black tracking-tighter leading-tight">PARTIDO LIBERAL</h1>
@@ -100,7 +100,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
 
                   <div className="text-center space-y-4 mt-20 print:hidden">
                      <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 max-w-sm mx-auto">
-                        <p className="text-[10px] text-blue-900 font-bold uppercase tracking-tight">O cartão impresso conterá a marca d'água da bandeira oficial e o QR Code de validação.</p>
+                        <p className="text-[10px] text-blue-900 font-bold uppercase tracking-tight">O cartão impresso conterá a marca d&apos;água da bandeira oficial e o QR Code de validação.</p>
                      </div>
                   </div>
                </div>
@@ -248,7 +248,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
                            <div>
                               <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Nota da Secretaria Provincial</h4>
                               <p className="text-sm text-slate-900 font-bold leading-relaxed mt-2 uppercase italic text-justify">
-                                 "Militante exemplar com participação activa nas marchas provinciais de 2026. Cumpridor escrupuloso dos deveres estatutários e financeiros. Enquadrado na ala de mobilização do Cuanza Sul."
+                                 &quot;Militante exemplar com participação activa nas marchas provinciais de 2026. Cumpridor escrupuloso dos deveres estatutários e financeiros. Enquadrado na ala de mobilização do Cuanza Sul.&quot;
                               </p>
                            </div>
                         </div>
@@ -280,7 +280,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
                                  </p>
                               </div>
                               <div className="w-16 h-12 flex items-center justify-center">
-                                 <img src="/partidoliberarbandeira.jpg" className="w-full h-full object-contain" />
+                                 <img src="/partidoliberarbandeira.jpg" alt="Bandeira do Partido" className="w-full h-full object-contain" />
                               </div>
                               <h2 className="text-xl font-black uppercase tracking-tighter">Ficha de Inscrição Oficial</h2>
                            </div>
@@ -305,7 +305,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
 
                            <div className="grid grid-cols-3 gap-8 mt-20">
                               <div className="w-40 h-48 border-2 border-slate-200 bg-white flex flex-col items-center justify-center relative">
-                                 {data?.foto ? <img src={data.foto} className="w-full h-full object-cover" /> : <p className="text-[8px] font-black uppercase text-slate-300">Foto</p>}
+                                 {data?.foto ? <img src={data.foto} alt="Foto do Militante" className="w-full h-full object-cover" /> : <p className="text-[8px] font-black uppercase text-slate-300">Foto</p>}
                               </div>
                               <div className="col-span-2 flex flex-col justify-end space-y-12">
                                  <div className="border-b-2 border-slate-900 pt-10 text-center font-black italic text-sm">
@@ -337,7 +337,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
                      </div>
 
                      <div className="w-24 h-16 bg-blue-900 flex items-center justify-center relative overflow-hidden rounded-sm border border-yellow-400">
-                        <img src="/partidoliberarbandeira.jpg" className="absolute inset-0 w-full h-full object-cover" />
+                        <img src="/partidoliberarbandeira.jpg" alt="Bandeira do Partido" className="absolute inset-0 w-full h-full object-cover" />
                      </div>
                      <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">PARTIDO LIBERAL – PL</h1>
 
@@ -348,7 +348,7 @@ export default function PrintPreview({ type, data, onClose }: PrintPreviewProps)
 
                   {/* Foto Área */}
                   <div className="absolute top-[80mm] right-[25mm] w-[35mm] h-[45mm] border-2 border-slate-300 bg-white flex flex-col items-center justify-center overflow-hidden">
-                     {data?.foto ? <img src={data.foto} className="w-full h-full object-cover" /> : <p className="text-[8px] font-black uppercase text-slate-300">Fotografia</p>}
+                     {data?.foto ? <img src={data.foto} alt="Fotografia do Militante" className="w-full h-full object-cover" /> : <p className="text-[8px] font-black uppercase text-slate-300">Fotografia</p>}
                   </div>
 
                   {/* DADOS PESSOAIS */}
