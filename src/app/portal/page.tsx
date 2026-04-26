@@ -1,0 +1,209 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { nucleosMock, relatoriosGraficosMock, militantesMock, imoveisMock, viaturasMock } from '@/data/portalMock';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, PieChart, Pie, Cell
+} from 'recharts';
+import {
+  UserGroupIcon,
+  BuildingOfficeIcon,
+  TruckIcon,
+  GlobeAltIcon,
+  BellIcon,
+  ChevronRightIcon,
+  SignalIcon
+} from '@heroicons/react/24/outline';
+import Link from 'next/link';
+
+const COLORS = ['#FFD700', '#1E3A8A', '#3B82F6', '#0F172A'];
+
+import GlobalSearch from '@/components/portal/GlobalSearch';
+
+export default function PortalDashboard() {
+  const stats = [
+    { label: 'Membros Totais', value: militantesMock.length + 1250, icon: UserGroupIcon, trend: '+12%', color: 'from-blue-600 to-blue-800' },
+    { label: 'Núcleos Ativos', value: nucleosMock.length, icon: SignalIcon, trend: 'Estável', color: 'from-yellow-300 to-yellow-400' },
+    { label: 'Patrimônio (Sedes)', value: imoveisMock.length, icon: BuildingOfficeIcon, trend: '+2', color: 'from-blue-600 to-blue-800' },
+    { label: 'Frota Operacional', value: viaturasMock.length, icon: TruckIcon, trend: '100%', color: 'from-yellow-300 to-yellow-400' },
+  ];
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Cabeçalho da Dashboard com Pesquisa Global */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-6 bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
+        <div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Dashboard</h2>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-2">Partido Liberal • Administrador Cuanza Sul</p>
+        </div>
+        <GlobalSearch />
+      </div>
+
+      {/* Grade de Estatísticas Superiores */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+            className={`relative p-6 rounded-[2rem] bg-gradient-to-br ${stat.color} text-white shadow-2xl shadow-slate-200 overflow-hidden group`}
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
+              <stat.icon className="w-24 h-24" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">{stat.label}</p>
+            <div className="flex items-end space-x-2">
+              <h3 className="text-4xl font-black tracking-tighter">{stat.value}</h3>
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full mb-1">{stat.trend}</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Gráfico Principal de Produção */}
+        <div className="lg:col-span-8 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tighter">Fluxo de Militância</h3>
+              <p className="text-sm text-slate-400 font-medium">Produção e arrecadação dos últimos 6 meses</p>
+            </div>
+            <div className="bg-slate-50 p-1.5 rounded-2xl flex space-x-1">
+              <button className="px-4 py-2 bg-white shadow-sm rounded-xl text-xs font-black text-slate-900">MENSAL</button>
+              <button className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">ANUAL</button>
+            </div>
+          </div>
+
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={relatoriosGraficosMock}>
+                <defs>
+                  <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ffff00" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#ffff00" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorQuota" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1E3A8A" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#1E3A8A" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="periodo" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Area type="monotone" dataKey="producao" name="Cadastros" stroke="#ffff00" strokeWidth={6} fillOpacity={1} fill="url(#colorProd)" />
+                <Area type="monotone" dataKey="quotasPagas" name="Quotas" stroke="#1E3A8A" strokeWidth={4} fillOpacity={1} fill="url(#colorQuota)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Notificações e Alertas de Patrimônio */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black tracking-tighter">Alertas Críticos</h3>
+              <BellIcon className="w-6 h-6 text-pure-yellow animate-bounce" />
+            </div>
+
+            <div className="space-y-4">
+              {imoveisMock.filter(i => i.status !== 'Regular').map((imovel, idx) => (
+                <div key={idx} className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-start space-x-3">
+                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{imovel.nome}</p>
+                    <p className="text-xs font-bold text-white mt-0.5">Fim do prazo: <span className="text-pure-yellow">{imovel.dataVencimento}</span></p>
+                    <Link
+                      href="/portal/patrimonio"
+                      className="mt-2 text-[10px] font-black text-blue-400 hover:underline flex items-center"
+                    >
+                      REGULARIZAR <ChevronRightIcon className="w-3 h-3 ml-0.5" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden p-8 rounded-[2.5rem] shadow-xl shadow-pure-yellow/20 ring-4 ring-yellow-100">
+            <img src="/partidoliberarbandeira.jpg" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+
+            <div className="relative z-10">
+              <h3 className="text-xl font-black tracking-tighter mb-2 uppercase text-white shadow-sm">Radio Liberal CS</h3>
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse border border-white" />
+                <p className="text-xs font-bold uppercase tracking-widest text-white/80">No Ar</p>
+              </div>
+              <p className="text-2xl font-black tracking-tighter mt-4 text-yellow-400 drop-shadow-lg">ENTREVISTA EXCLUSIVA</p>
+              <button className="mt-6 w-full py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs hover:scale-105 transition-transform tracking-widest shadow-xl">OUVIR AGORA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Inferior - Novos Militantes e Mapa */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-green p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+          <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-6">Militância Recente</h3>
+          <div className="space-y-4">
+            {militantesMock.map((m, i) => (
+              <Link
+                href={`/portal/membros/perfil?id=${m.id}`}
+                key={i}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-yellow-400 group-hover:text-slate-950 transition-colors">
+                    {m.nome.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{m.nome}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{m.bi}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-tighter italic">{m.municipio}</p>
+                  <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Registado</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/portal/membros/lista"
+            className="w-full mt-6 block text-center py-4 border-2 border-slate-100 rounded-2xl text-xs font-black text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all uppercase tracking-widest"
+          >
+            Ver Todos os Militantes
+          </Link>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-6">
+          <GlobeAltIcon className="w-24 h-24 text-slate-100" />
+          <div className="text-center">
+            <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-2 italic">Dominação Territorial</h3>
+            <p className="text-sm text-slate-400 font-medium italic">Estamos presentes em todos os 25 municípios do Cuanza Sul com missões diárias.</p>
+          </div>
+          <div className="w-full grid grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-slate-50 rounded-2xl">
+              <p className="text-xl font-black text-slate-900 tracking-tighter">Sumbe</p>
+              <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase">Sede Central</p>
+            </div>
+            <div className="text-center p-4 bg-slate-50 rounded-2xl">
+              <p className="text-xl font-black text-slate-900 tracking-tighter">Calulo</p>
+              <p className="text-[10px] font-bold text-green-600 mt-1 uppercase">+15% Cresc.</p>
+            </div>
+            <div className="text-center p-4 bg-slate-50 rounded-2xl">
+              <p className="text-xl font-black text-slate-900 tracking-tighter">Gabela</p>
+              <p className="text-[10px] font-bold text-yellow-600 mt-1 uppercase">Estável</p>
+            </div>
+          </div>
+          <button className="w-full py-4 bg-primary-blue text-white rounded-2xl font-black text-xs hover:bg-blue-900 transition-colors tracking-widest italic">ABRIR MAPA DOS 25 MUNICÍPIOS</button>
+        </div>
+      </div>
+    </div>
+  );
+}
