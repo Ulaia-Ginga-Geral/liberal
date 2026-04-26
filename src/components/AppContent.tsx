@@ -7,11 +7,10 @@ import Header from "@/components/Header";
 export default function AppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  // Se estiver numa rota do portal, não renderiza o Header e Sidebar globais
-  // O layout.tsx de /portal já providencia o seu próprio layout (PortalSidebar, etc)
-  const isPortalRoute = pathname.startsWith('/portal');
+  // Se estiver numa rota do portal ou login, não renderiza o Header e Sidebar globais
+  const isExcludedRoute = pathname.startsWith('/portal') || pathname === '/login';
 
-  if (isPortalRoute) {
+  if (isExcludedRoute) {
     return <>{children}</>;
   }
 
