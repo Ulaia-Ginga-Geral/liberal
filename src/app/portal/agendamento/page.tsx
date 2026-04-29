@@ -102,7 +102,8 @@ export default function AgendamentoPage() {
                {agendamentos.map((event) => (
                   <motion.div 
                     key={event.id}
-                    layoutProps={{ duration: 0.3 }}
+                    layout
+                    transition={{ duration: 0.3 }}
                     whileHover={{ x: 10 }}
                     className="flex items-center justify-between p-6 bg-slate-50 rounded-[2.5rem] group hover:bg-slate-950 transition-all duration-300"
                   >
