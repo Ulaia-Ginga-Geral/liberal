@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MUNICIPIOS_CUANZA_SUL } from '@/data/portalMock';
 import {
@@ -29,7 +29,7 @@ import { toast } from 'react-hot-toast';
 import { usePortal } from '@/context/PortalContext';
 import { useSearchParams } from 'next/navigation';
 
-export default function PortalPatrimonio() {
+function PatrimonioPageContent() {
    const { 
       imoveis, addImovel, deleteImovel,
       viaturas, addViatura, deleteViatura,
@@ -603,5 +603,17 @@ export default function PortalPatrimonio() {
             </form>
          </PortalModal>
       </div>
+   );
+}
+
+export default function PortalPatrimonio() {
+   return (
+      <Suspense fallback={
+         <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div>
+         </div>
+      }>
+         <PatrimonioPageContent />
+      </Suspense>
    );
 }
