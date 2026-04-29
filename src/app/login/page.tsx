@@ -26,7 +26,7 @@ export default function LoginPage() {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/login-bg.png"
+          src="/partido-bg.jpeg"
           alt="Background"
           className="w-full h-full object-cover opacity-60 transition-opacity duration-1000"
         />

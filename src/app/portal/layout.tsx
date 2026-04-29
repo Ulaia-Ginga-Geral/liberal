@@ -4,12 +4,14 @@ import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import PortalSidebar from "@/components/PortalSidebar";
 import { PortalProvider } from "@/context/PortalContext";
+import { Toaster } from 'react-hot-toast';
 
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
     <PortalProvider>
+      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#0f172a', color: '#fff' } }} />
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         {/* Sidebar exclusiva para o Portal */}
         <PortalSidebar />

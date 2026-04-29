@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { imoveisMock, viaturasMock, MUNICIPIOS_CUANZA_SUL, historicoMock } from '@/data/portalMock';
+import { MUNICIPIOS_CUANZA_SUL } from '@/data/portalMock';
 import {
    BuildingOfficeIcon,
    TruckIcon,
@@ -19,13 +19,39 @@ import {
    IdentificationIcon,
    CloudArrowUpIcon,
    CalendarIcon,
-   ClockIcon
+   ClockIcon,
+   TrashIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import PortalModal from '@/components/portal/PortalModal';
+import { toast } from 'react-hot-toast';
+
+import { usePortal } from '@/context/PortalContext';
+import { useSearchParams } from 'next/navigation';
 
 export default function PortalPatrimonio() {
-   const [activeTab, setActiveTab] = useState('imoveis');
+   const { 
+      imoveis, addImovel, deleteImovel,
+      viaturas, addViatura, deleteViatura,
+      manutencoes, addManutencao,
+      transacoes,
+      getDividaAcumulada,
+      saldo 
+   } = usePortal();
+
+   const searchParams = useSearchParams();
+   const initialTab = searchParams.get('tab') || 'imoveis';
+   const [activeTab, setActiveTab] = useState(initialTab);
+
+   // Sincronizar aba com a URL
+   const [lastTab, setLastTab] = useState(initialTab);
+   const currentTab = searchParams.get('tab');
+
+   if (currentTab && currentTab !== lastTab) {
+      setActiveTab(currentTab);
+      setLastTab(currentTab);
+   }
+
    const [filtroSede, setFiltroSede] = useState('');
    const [dataInicio, setDataInicio] = useState('');
    const [dataFim, setDataFim] = useState('');
@@ -39,13 +65,76 @@ export default function PortalPatrimonio() {
    const [showModalHistoricoVtr, setShowModalHistoricoVtr] = useState(false);
    const [selectedVtr, setSelectedVtr] = useState<any>(null);
 
-   const imoveisFiltrados = imoveisMock.filter(i => {
+   // Estados dos Formulários
+   const [imovelForm, setImovelForm] = useState({
+      nome: '', localizacao: 'Sumbe', mensalidade: '', dono: '', contacto: '', diaVencimento: '5'
+   });
+   const [viaturaForm, setViaturaForm] = useState({
+      modelo: '', matricula: '', ano: new Date().getFullYear(), departamento: 'Logística Provincial'
+   });
+   const [manutencaoForm, setManutencaoForm] = useState({
+      servico: '', custo: '', data: new Date().toISOString().split('T')[0]
+   });
+
+   const handleDeleteImovel = (id: number) => {
+      if (confirm('Deseja realmente remover esta sede do património provincial?')) {
+         deleteImovel(id);
+         toast.success('Imóvel removido com sucesso!');
+      }
+   };
+
+   const handleDeleteViatura = (id: number) => {
+      if (confirm('Confirmar remoção desta viatura da frota oficial?')) {
+         deleteViatura(id);
+         toast.success('Viatura removida do sistema!');
+      }
+   };
+
+   const handleImovelSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      addImovel({
+         ...imovelForm,
+         status: 'Regular',
+         dataVencimento: new Date(new Date().getFullYear(), new Date().getMonth() + 1, parseInt(imovelForm.diaVencimento)).toISOString()
+      });
+      setShowModalImovel(false);
+      toast.success('Imóvel registrado com sucesso!');
+   };
+
+   const handleViaturaSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      addViatura({
+         ...viaturaForm,
+         manutencaoProx: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
+      });
+      setShowModalViatura(false);
+      toast.success('Viatura adicionada à frota!');
+   };
+
+   const handleManutencaoSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      addManutencao({
+         vtrId: selectedVtr.id,
+         vtr: selectedVtr.modelo,
+         acao: manutencaoForm.servico,
+         custo: manutencaoForm.custo + ' Kz',
+         data: manutencaoForm.data,
+         responsavel: 'Oficina Provincial (Sumbe)'
+      });
+
+      setShowModalManutencao(false);
+      setManutencaoForm({ servico: '', custo: '', data: new Date().toISOString().split('T')[0] });
+      toast.success('Manutenção registrada e sincronizada!');
+   };
+
+   const imoveisFiltrados = imoveis.filter(i => {
       const matchTexto = i.nome.toLowerCase().includes(filtroSede.toLowerCase()) || i.localizacao.toLowerCase().includes(filtroSede.toLowerCase());
       const matchMunicipio = filtroMunicipio === '' || i.localizacao.toLowerCase().includes(filtroMunicipio.toLowerCase());
       return matchTexto && matchMunicipio;
    });
 
-   const viaturasFiltradas = viaturasMock.filter(v => {
+   const viaturasFiltradas = viaturas.filter(v => {
       const matchTexto = v.modelo.toLowerCase().includes(filtroSede.toLowerCase()) || v.matricula.toLowerCase().includes(filtroSede.toLowerCase());
       const matchMunicipio = filtroMunicipio === '' || v.departamento.toLowerCase().includes(filtroMunicipio.toLowerCase());
       return matchTexto && matchMunicipio;
@@ -58,12 +147,12 @@ export default function PortalPatrimonio() {
             {activeTab === 'imoveis' ? (
                <>
                   <div className="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/20">
-                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Total Rendas Pagas</p>
-                     <p className="text-3xl font-black italic">14.250.000 Kz</p>
+                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Saldo em Caixa (PL)</p>
+                     <p className="text-3xl font-black italic">{saldo.toLocaleString()} Kz</p>
                   </div>
                   <div className="bg-yellow-400 p-8 rounded-[2.5rem] text-slate-900 shadow-xl shadow-yellow-500/20">
                      <p className="text-[10px] font-black text-yellow-800 uppercase tracking-widest mb-2">Dívidas Acumuladas</p>
-                     <p className="text-3xl font-black italic">850.000 Kz</p>
+                     <p className="text-3xl font-black italic">{getDividaAcumulada().toLocaleString()} Kz</p>
                   </div>
                   <div className="md:col-span-2 bg-white p-10 rounded-[2.5rem] border-2 border-slate-50 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
                      <div className="flex-1">
@@ -96,12 +185,14 @@ export default function PortalPatrimonio() {
             ) : (
                <>
                   <div className="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/20">
-                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Custo Manutenção Frota</p>
-                     <p className="text-3xl font-black italic">2.140.000 Kz</p>
+                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Custos de Manutenção</p>
+                     <p className="text-3xl font-black italic">
+                        {transacoes.filter(t => t.categoria === 'Viatura').reduce((acc, t) => acc + t.valor, 0).toLocaleString()} Kz
+                     </p>
                   </div>
                   <div className="bg-yellow-400 p-8 rounded-[2.5rem] text-slate-900 shadow-xl shadow-yellow-500/20">
-                     <p className="text-[10px] font-black text-yellow-800 uppercase tracking-widest mb-2">Total Viaturas</p>
-                     <p className="text-3xl font-black italic">08 Ativas</p>
+                     <p className="text-[10px] font-black text-yellow-800 uppercase tracking-widest mb-2">Total Frota Ativa</p>
+                     <p className="text-3xl font-black italic">{viaturas.length} Viaturas</p>
                   </div>
                   <div className="md:col-span-2 bg-white p-10 rounded-[2.5rem] border-2 border-slate-50 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
                      <div className="flex-1">
@@ -251,7 +342,10 @@ export default function PortalPatrimonio() {
                      </div>
                      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
                         <Link href={`/portal/patrimonio/historico-imovel?id=${imovel.id}`} className="text-[10px] font-black uppercase text-slate-900 hover:underline">Ver Dono & Contrato</Link>
-                        <button className="p-3 bg-slate-900 text-white rounded-xl"><ChevronRightIcon className="w-4 h-4" /></button>
+                        <div className="flex items-center space-x-2">
+                           <button onClick={() => handleDeleteImovel(imovel.id)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                           <button className="p-3 bg-slate-900 text-white rounded-xl"><ChevronRightIcon className="w-4 h-4" /></button>
+                        </div>
                      </div>
                   </motion.div>
                ))}
@@ -286,6 +380,7 @@ export default function PortalPatrimonio() {
                         >
                            Registrar Manutenção
                         </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteViatura(car.id); }} className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-red-50 group-hover:text-red-600 transition-all"><TrashIcon className="w-4 h-4" /></button>
                         <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-all"><WrenchScrewdriverIcon className="w-4 h-4" /></button>
                      </div>
                   </motion.div>
@@ -309,8 +404,8 @@ export default function PortalPatrimonio() {
 
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registo de Intervenções</h4>
-                  {historicoMock.filter(h => h.vtrId === selectedVtr?.id).length > 0 ? (
-                     historicoMock.filter(h => h.vtrId === selectedVtr?.id).map((h) => (
+                  {manutencoes.filter(h => h.vtrId === selectedVtr?.id).length > 0 ? (
+                     manutencoes.filter(h => h.vtrId === selectedVtr?.id).map((h) => (
                         <div key={h.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start space-x-4">
                            <div className="p-3 bg-white rounded-xl shadow-sm text-blue-600">
                               <WrenchScrewdriverIcon className="w-5 h-5" />
@@ -354,15 +449,23 @@ export default function PortalPatrimonio() {
 
          {/* MODAL: NOVO IMÓVEL / SEDE */}
          <PortalModal isOpen={showModalImovel} onClose={() => setShowModalImovel(false)} title="Novo Registro de Imóvel">
-            <form className="space-y-6">
+            <form onSubmit={handleImovelSubmit} className="space-y-6">
                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Designação da Sede</label>
-                     <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Sede Provincial" />
+                     <input 
+                        required
+                        value={imovelForm.nome}
+                        onChange={e => setImovelForm({...imovelForm, nome: e.target.value})}
+                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Sede Provincial" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Município</label>
-                     <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none">
+                     <select 
+                        value={imovelForm.localizacao}
+                        onChange={e => setImovelForm({...imovelForm, localizacao: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none"
+                     >
                         {MUNICIPIOS_CUANZA_SUL.map(m => <option key={m} className="text-black">{m}</option>)}
                      </select>
                   </div>
@@ -373,11 +476,19 @@ export default function PortalPatrimonio() {
                   <div className="grid grid-cols-2 gap-6">
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Dono</label>
-                        <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
+                        <input 
+                           required
+                           value={imovelForm.dono}
+                           onChange={e => setImovelForm({...imovelForm, dono: e.target.value})}
+                           type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
                      </div>
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contacto</label>
-                        <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="+244 ..." />
+                        <input 
+                           required
+                           value={imovelForm.contacto}
+                           onChange={e => setImovelForm({...imovelForm, contacto: e.target.value})}
+                           type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="+244 ..." />
                      </div>
                   </div>
                </div>
@@ -385,65 +496,76 @@ export default function PortalPatrimonio() {
                <div className="grid grid-cols-2 gap-6 p-6 bg-slate-900 rounded-[2rem] text-white">
                   <div className="space-y-2">
                      <p className="text-[9px] font-black text-yellow-400 uppercase">Mensalidade (Kz)</p>
-                     <input type="text" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-black outline-none" placeholder="0.00" />
+                     <input 
+                        required
+                        value={imovelForm.mensalidade}
+                        onChange={e => setImovelForm({...imovelForm, mensalidade: e.target.value})}
+                        type="text" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-white outline-none" placeholder="0.00" />
                   </div>
                   <div className="space-y-2">
                      <p className="text-[9px] font-black text-yellow-400 uppercase">Dia de Vencimento</p>
-                     <input type="number" max="31" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-black outline-none" placeholder="Ex: 5" />
+                     <input 
+                        required
+                        value={imovelForm.diaVencimento}
+                        onChange={e => setImovelForm({...imovelForm, diaVencimento: e.target.value})}
+                        type="number" max="31" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-white outline-none" placeholder="Ex: 5" />
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-4">
-                  <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-3xl hover:bg-slate-50 cursor-pointer transition-all">
-                     <DocumentArrowUpIcon className="w-8 h-8 text-slate-300 mb-2" />
-                     <span className="text-[9px] font-black uppercase text-slate-400">Anexar Contrato (PDF)</span>
-                     <input type="file" className="hidden" />
-                  </label>
-                  <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-3xl hover:bg-slate-50 cursor-pointer transition-all">
-                     <IdentificationIcon className="w-8 h-8 text-slate-300 mb-2" />
-                     <span className="text-[9px] font-black uppercase text-slate-400">Cópia do BI Dono</span>
-                     <input type="file" className="hidden" />
-                  </label>
-               </div>
-
-               <button className="w-full py-6 bg-yellow-400 text-slate-900 rounded-3xl font-black uppercase tracking-widest hover:bg-yellow-500 transition-all shadow-xl active:scale-95">Salvar Registro de Sede</button>
+               <button type="submit" className="w-full py-6 bg-yellow-400 text-slate-900 rounded-3xl font-black uppercase tracking-widest hover:bg-yellow-500 transition-all shadow-xl active:scale-95">Salvar Registro de Sede</button>
             </form>
          </PortalModal>
 
          {/* MODAL: NOVA VIATURA */}
          <PortalModal isOpen={showModalViatura} onClose={() => setShowModalViatura(false)} title="Registrar Nova Viatura">
-            <form className="space-y-6">
+            <form onSubmit={handleViaturaSubmit} className="space-y-6">
                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Modelo / Marca</label>
-                     <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Toyota Hilux" />
+                     <input 
+                        required
+                        value={viaturaForm.modelo}
+                        onChange={e => setViaturaForm({...viaturaForm, modelo: e.target.value})}
+                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Toyota Hilux" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Matrícula</label>
-                     <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="LD-00-00-XX" />
+                     <input 
+                        required
+                        value={viaturaForm.matricula}
+                        onChange={e => setViaturaForm({...viaturaForm, matricula: e.target.value})}
+                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="LD-00-00-XX" />
                   </div>
                </div>
                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ano de Fabrico</label>
-                     <input type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
+                     <input 
+                        required
+                        value={viaturaForm.ano}
+                        onChange={e => setViaturaForm({...viaturaForm, ano: parseInt(e.target.value)})}
+                        type="number" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Departamento</label>
-                     <select className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none">
+                     <select 
+                        value={viaturaForm.departamento}
+                        onChange={e => setViaturaForm({...viaturaForm, departamento: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none cursor-pointer"
+                     >
                         <option>Logística Provincial</option>
                         <option>Mobilização Sumbe</option>
                         <option>Secretariado Executivo</option>
                      </select>
                   </div>
                </div>
-               <button className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Finalizar Cadastro de Frota</button>
+               <button type="submit" className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Finalizar Cadastro de Frota</button>
             </form>
          </PortalModal>
 
          {/* MODAL: MANUTENÇÃO */}
          <PortalModal isOpen={showModalManutencao} onClose={() => setShowModalManutencao(false)} title={`Manutenção: ${selectedVtr?.modelo || ''}`}>
-            <form className="space-y-6">
+            <form onSubmit={handleManutencaoSubmit} className="space-y-6">
                <div className="bg-yellow-50 p-6 rounded-[2rem] border border-yellow-100 flex items-center space-x-4">
                   <div className="p-3 bg-yellow-400 rounded-xl text-slate-900"><WrenchScrewdriverIcon className="w-6 h-6" /></div>
                   <div>
@@ -453,19 +575,31 @@ export default function PortalPatrimonio() {
                </div>
                <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição do Serviço</label>
-                  <textarea rows={3} className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Substituição de pastilhas de travão e óleo de motor." />
+                  <textarea 
+                     required
+                     value={manutencaoForm.servico}
+                     onChange={e => setManutencaoForm({...manutencaoForm, servico: e.target.value})}
+                     rows={3} className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Substituição de pastilhas de travão e óleo de motor." />
                </div>
                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Custo da Reparação (Kz)</label>
-                     <input type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
+                     <input 
+                        required
+                        value={manutencaoForm.custo}
+                        onChange={e => setManutencaoForm({...manutencaoForm, custo: e.target.value})}
+                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="0.00" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data da Intervenção</label>
-                     <input type="date" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
+                     <input 
+                        required
+                        value={manutencaoForm.data}
+                        onChange={e => setManutencaoForm({...manutencaoForm, data: e.target.value})}
+                        type="date" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" />
                   </div>
                </div>
-               <button className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Registrar Manutenção no Histórico</button>
+               <button type="submit" className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Registrar Manutenção no Histórico</button>
             </form>
          </PortalModal>
       </div>

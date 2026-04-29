@@ -20,13 +20,37 @@ export default function ListaMembros() {
   const { membros } = usePortal();
   const [busca, setBusca] = useState('');
   const [filtroMunicipio, setFiltroMunicipio] = useState('Todas');
+  const [filtroIdade, setFiltroIdade] = useState('Todos');
+
+  const calcularIdade = (data: string) => {
+    if (!data) return 0;
+    const birth = new Date(data);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
 
   const municipios = ['Todas', ...MUNICIPIOS_CUANZA_SUL];
 
   const membrosFiltrados = membros.filter(m => {
-    const matchBusca = m.nome.toLowerCase().includes(busca.toLowerCase()) || m.bi.toLowerCase().includes(busca.toLowerCase());
-    const matchMun = filtroMunicipio === 'Todas' || m.municipio === filtroMunicipio || (filtroMunicipio === 'Sumbe' && !m.municipio); // Fallback para Sumbe se vazio
-    return matchBusca && matchMun;
+    const matchBusca = 
+      m.nome.toLowerCase().includes(busca.toLowerCase()) || 
+      m.bi.toLowerCase().includes(busca.toLowerCase()) ||
+      (m.profissao && m.profissao.toLowerCase().includes(busca.toLowerCase()));
+    
+    const matchMun = filtroMunicipio === 'Todas' || m.municipio === filtroMunicipio || (filtroMunicipio === 'Sumbe' && !m.municipio);
+    
+    // Filtro de Idade
+    const idade = m.dataNascimento ? calcularIdade(m.dataNascimento) : 0;
+    let matchIdade = true;
+    if (filtroIdade === '18-25') matchIdade = idade >= 18 && idade <= 25;
+    else if (filtroIdade === '26-40') matchIdade = idade >= 26 && idade <= 40;
+    else if (filtroIdade === '41-60') matchIdade = idade >= 41 && idade <= 60;
+    else if (filtroIdade === '60+') matchIdade = idade > 60;
+
+    return matchBusca && matchMun && matchIdade;
   });
 
   return (
@@ -52,39 +76,62 @@ export default function ListaMembros() {
         </div>
       </div>
 
-      {/* Filtros e Busca Modernos */}
-      <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 space-y-10 transition-all hover:shadow-xl hover:shadow-slate-200/50">
-         <div className="flex flex-col lg:flex-row gap-8">
-            <div className="relative flex-1">
-               <MagnifyingGlassIcon className="absolute left-6 top-5 w-6 h-6 text-slate-300" />
-               <input 
-                 type="text" 
-                 placeholder="Pesquise por nome, BI ou Identificador..." 
-                 className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] p-5 pl-16 text-sm font-black text-slate-900 focus:bg-white focus:border-yellow-400 transition-all outline-none placeholder:text-slate-300 placeholder:italic"
-                 onChange={(e) => setBusca(e.target.value)}
-               />
-            </div>
+      <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-slate-100 transition-all hover:shadow-xl hover:shadow-slate-200/50">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             
-            <div className="flex flex-wrap gap-3 max-w-xl">
-               <div className="w-full mb-2 flex items-center space-x-2">
-                  <MapPinIcon className="w-4 h-4 text-yellow-500" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Raio de Influência</span>
+            {/* Busca Principal */}
+            <div className="lg:col-span-6 space-y-3">
+               <div className="flex items-center space-x-2 ml-4">
+                  <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pesquisa Inteligente</span>
                </div>
-               {municipios.map(mun => (
-                 <button
-                   key={mun}
-                   onClick={() => setFiltroMunicipio(mun)}
-                   className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                     filtroMunicipio === mun 
-                     ? 'bg-slate-900 text-yellow-400 shadow-xl' 
-                     : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
-                   }`}
-                 >
-                   {mun}
-                 </button>
-               ))}
+               <div className="relative group">
+                  <input 
+                    type="text" 
+                    placeholder="Nome, B.I ou Cargo/Profissão..." 
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] p-5 pl-8 text-sm font-black text-slate-900 focus:bg-white focus:border-yellow-400 transition-all outline-none placeholder:text-slate-300 placeholder:italic"
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
+               </div>
             </div>
-         </div>
+
+            {/* Filtro Município */}
+            <div className="lg:col-span-3 space-y-3">
+               <div className="flex items-center space-x-2 ml-4">
+                  <MapPinIcon className="w-4 h-4 text-yellow-500" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Município</span>
+               </div>
+               <select 
+                  value={filtroMunicipio}
+                  onChange={(e) => setFiltroMunicipio(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] p-5 px-8 text-sm font-black text-slate-900 focus:bg-white focus:border-yellow-400 transition-all outline-none cursor-pointer appearance-none"
+               >
+                  {municipios.map(m => (
+                     <option key={m} value={m}>{m === 'Todas' ? 'Todos os Municípios' : m}</option>
+                  ))}
+               </select>
+            </div>
+
+            {/* Filtro Idade */}
+            <div className="lg:col-span-3 space-y-3">
+               <div className="flex items-center space-x-2 ml-4">
+                  <IdentificationIcon className="w-4 h-4 text-blue-500" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faixa Etária</span>
+               </div>
+               <select 
+                  value={filtroIdade}
+                  onChange={(e) => setFiltroIdade(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] p-5 px-8 text-sm font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none cursor-pointer appearance-none"
+               >
+                  <option value="Todos">Todas as Idades</option>
+                  <option value="18-25">18 a 25 anos (Juventude)</option>
+                  <option value="26-40">26 a 40 anos (Ativos)</option>
+                  <option value="41-60">41 a 60 anos (Experientes)</option>
+                  <option value="60+">Mais de 60 anos (Veteranos)</option>
+               </select>
+            </div>
+
+          </div>
       </div>
 
       {/* Grid de Militantes */}

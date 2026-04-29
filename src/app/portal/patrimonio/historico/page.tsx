@@ -11,18 +11,19 @@ import {
   FunnelIcon
 } from '@heroicons/react/24/outline';
 
+import { usePortal } from '@/context/PortalContext';
 import { useSearchParams } from 'next/navigation';
-import { historicoMock, viaturasMock } from '@/data/portalMock';
 import Link from 'next/link';
 
 function HistoricoViaturasContent() {
+  const { manutencoes, viaturas } = usePortal();
   const searchParams = useSearchParams();
   const vtrId = searchParams.get('vtrId');
   
-  const viaturaSelecionada = viaturasMock.find(v => v.id.toString() === vtrId);
+  const viaturaSelecionada = viaturas.find(v => v.id.toString() === vtrId);
   const logs = vtrId 
-    ? historicoMock.filter(log => log.vtrId.toString() === vtrId)
-    : historicoMock;
+    ? manutencoes.filter(log => log.vtrId.toString() === vtrId)
+    : manutencoes;
 
   return (
     <div className="space-y-8">

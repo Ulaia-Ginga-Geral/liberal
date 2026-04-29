@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { usePortal } from '@/context/PortalContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import RadioPlayer from "./portal/RadioPlayer";
 import {
@@ -27,35 +28,35 @@ import {
 
 const portalNavigation = [
   {
-    title: "PRINCIPAL",
+    title: "OPERACIONAL",
     items: [
-      { name: 'Dashboard Geral', href: '/portal', icon: ChartBarIcon, exact: true },
-      { name: 'Base de Dados Geral', href: '/portal/membros/lista', icon: QrCodeIcon },
+      { name: 'Painel de Controle', href: '/portal', icon: ChartBarIcon, exact: true },
+      { name: 'Base de Dados Global', href: '/portal/membros/lista', icon: QrCodeIcon },
+      { name: 'Centro de Mensagens', href: '/portal/mensagens', icon: ChatBubbleLeftRightIcon },
     ]
   },
   {
-    title: "GESTÃO DE MEMBROS",
+    title: "GESTÃO POLÍTICA",
     items: [
-      { name: 'Hierarquia Política', href: '/portal/cadastro?tab=usuarios', icon: ShieldCheckIcon },
-      { name: 'Registos de Novas Fichas', href: '/portal/cadastro?tab=militantes', icon: FolderPlusIcon },
-      { name: 'Árvore de Núcleos', href: '/portal/cadastro?tab=nucleos', icon: ListBulletIcon },
-      { name: 'Cartões & Identidade', href: '/portal/documentos?tab=cartao', icon: CreditCardIcon },
+      { name: 'Hierarquia & Oficiais', href: '/portal/cadastro?tab=usuarios', icon: ShieldCheckIcon },
+      { name: 'Admissão de Membros', href: '/portal/cadastro?tab=militantes', icon: FolderPlusIcon },
+      { name: 'Estrutura de Núcleos', href: '/portal/cadastro?tab=nucleos', icon: ListBulletIcon },
+      { name: 'Logística de Viagens', href: '/portal/agendamento', icon: CalendarIcon },
     ]
   },
   {
-    title: "OPERAÇÕES",
+    title: "PATRIMÓNIO & ATIVOS",
     items: [
-      { name: 'Relatórios de Produção', href: '/portal/relatorios', icon: ChartBarIcon },
-      { name: 'Documentação Oficial', href: '/portal/documentos', icon: DocumentTextIcon },
-      { name: 'Agenda de Viagens', href: '/portal/agendamento', icon: CalendarIcon },
-      { name: 'Centro de Mensagens', href: '/portal/agendamento?tab=notificacoes', icon: ChatBubbleLeftRightIcon },
+      { name: 'Sedes e Imóveis', href: '/portal/patrimonio', icon: BuildingOffice2Icon },
+      { name: 'Frota Automóvel', href: '/portal/patrimonio?tab=viaturas', icon: TruckIcon },
+      { name: 'Documentação & Leis', href: '/portal/documentos', icon: DocumentTextIcon },
     ]
   },
   {
-    title: "PATRIMÓNIO",
+    title: "FINANÇAS & CONTAS",
     items: [
-      { name: 'Sedis & Comités', href: '/portal/patrimonio', icon: BuildingOffice2Icon },
-      { name: 'Inventário de Veículos', href: '/portal/patrimonio?tab=viaturas', icon: TruckIcon },
+      { name: 'Gestão de Tesouraria', href: '/portal/financas', icon: CreditCardIcon, exact: true },
+      { name: 'Diário de Transações', href: '/portal/financas/transacoes', icon: ListBulletIcon },
     ]
   }
 ];
@@ -63,6 +64,7 @@ const portalNavigation = [
 export default function PortalSidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { logout } = usePortal();
 
   return (
     <>
@@ -96,12 +98,13 @@ export default function PortalSidebar() {
           {/* Header com Identidade Visual Sincronizada */}
           <div className="p-8 border-b border-blue-700 bg-primary-blue/30 backdrop-blur-md">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-24 h-24 overflow-hidden shadow-2xl">
+              <div className="w-24 h-24 overflow-hidden shadow-2xl relative group-hover:scale-105 transition-transform duration-500">
                 <img
                   src="/presidenteluisdecastro.png"
                   alt="Presidente Luís de Castro"
                   className="w-full h-full object-cover"
                 />
+                <div className="absolute inset-0 border-2 border-yellow-400 opacity-20 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="space-y-1">
                 <h1 className="text-white font-black text-xs leading-tight uppercase tracking-tighter shadow-sm italic">Luís de Castro</h1>
@@ -126,8 +129,9 @@ export default function PortalSidebar() {
           {/* Navegação Categorizada com tema Azul/Amarelo */}
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto scrollbar-hide">
             {portalNavigation.map((category) => (
-              <div key={category.title} className="space-y-1">
-                <h2 className="text-[10px] font-black text-blue-300/50 uppercase px-4 mb-2 tracking-[0.2em]">{category.title}</h2>
+              <div key={category.title} className="space-y-2">
+                <h2 className="text-[9px] font-black text-blue-300/40 uppercase px-4 mb-3 tracking-[0.3em] font-serif italic border-b border-white/5 pb-1">{category.title}</h2>
+                <div className="space-y-1">
                 {category.items.map((item) => {
                   const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
                   return (
@@ -151,6 +155,7 @@ export default function PortalSidebar() {
                     </Link>
                   );
                 })}
+                </div>
               </div>
             ))}
           </nav>
@@ -165,7 +170,11 @@ export default function PortalSidebar() {
                 <p className="text-xs font-black text-white truncate">Administrator</p>
                 <p className="text-[10px] text-blue-300 truncate font-bold uppercase tracking-tight">Kwanza Sul</p>
               </div>
-              <button className="p-2 text-blue-300 hover:text-yellow-400 transition-colors">
+              <button 
+                onClick={logout}
+                className="p-2 text-blue-300 hover:text-yellow-400 transition-colors"
+                title="Sair do Sistema"
+              >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
             </div>
