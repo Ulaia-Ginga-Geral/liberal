@@ -24,11 +24,11 @@ export const nucleosMock = [
 ];
 
 export const militantesMock = [
-  { id: 1, nome: "Fernando Lopes", bi: "123456789CS012", dataNascimento: "1985-05-12", provincia: "Cuanza Sul", municipio: "Sumbe", nucleoId: 1, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/1.jpg", registradoPor: 2 },
-  { id: 2, nome: "Teresa Marcos", bi: "987654321CS098", dataNascimento: "1990-11-23", provincia: "Cuanza Sul", municipio: "Waku Kungo", nucleoId: 2, activo: false, foto: "https://xsgames.co/randomusers/assets/avatars/female/2.jpg", registradoPor: 3 },
-  { id: 3, nome: "Luís Fernando", bi: "456123789CS045", dataNascimento: "2000-01-10", provincia: "Cuanza Sul", municipio: "Calulo", nucleoId: 4, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/3.jpg", registradoPor: 3 },
-  { id: 4, nome: "Maria Auxiliadora", bi: "741258963CS074", dataNascimento: "1995-06-15", provincia: "Cuanza Sul", municipio: "Gabela", nucleoId: 1, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/female/5.jpg", registradoPor: 4 },
-  { id: 5, nome: "António Manuel", bi: "369258147CS036", dataNascimento: "1988-09-30", provincia: "Cuanza Sul", municipio: "Porto Amboim", nucleoId: 2, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/8.jpg", registradoPor: 2 },
+  { id: 1, nome: "Fernando Lopes", bi: "123456789CS012", dataNascimento: "1985-05-12", provincia: "Cuanza Sul", municipio: "Sumbe", nucleoId: 1, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/1.jpg", registradoPor: 2, sexo: 'Masculino' },
+  { id: 2, nome: "Teresa Marcos", bi: "987654321CS098", dataNascimento: "1990-11-23", provincia: "Cuanza Sul", municipio: "Waku Kungo", nucleoId: 2, activo: false, foto: "https://xsgames.co/randomusers/assets/avatars/female/2.jpg", registradoPor: 3, sexo: 'Feminino' },
+  { id: 3, nome: "Luís Fernando", bi: "456123789CS045", dataNascimento: "2000-01-10", provincia: "Cuanza Sul", municipio: "Calulo", nucleoId: 4, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/3.jpg", registradoPor: 3, sexo: 'Masculino' },
+  { id: 4, nome: "Maria Auxiliadora", bi: "741258963CS074", dataNascimento: "1995-06-15", provincia: "Cuanza Sul", municipio: "Gabela", nucleoId: 1, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/female/5.jpg", registradoPor: 4, sexo: 'Feminino' },
+  { id: 5, nome: "António Manuel", bi: "369258147CS036", dataNascimento: "1988-09-30", provincia: "Cuanza Sul", municipio: "Porto Amboim", nucleoId: 2, activo: true, foto: "https://xsgames.co/randomusers/assets/avatars/male/8.jpg", registradoPor: 2, sexo: 'Masculino' },
 ];
 
 export const historicoMock = [
@@ -64,11 +64,11 @@ export const notificacoesSmsMock = [
 ];
 
 export const imoveisMock = [
-  { id: 1, nome: "Sede Provincial PL", localizacao: "Bairro Kitala, Sumbe", mensalidade: "Kz 450.000", status: "Regular", dataVencimento: "15/05/2024" },
-  { id: 2, nome: "Comité Comarca Calulo", localizacao: "Zona Comercial, Calulo", mensalidade: "Kz 180.000", status: "Aviso", dataVencimento: "02/05/2024" },
-  { id: 3, nome: "Secretariado Porto Amboim", localizacao: "Avenida Marginal, Porto Amboim", mensalidade: "Kz 220.000", status: "Crítico", dataVencimento: "28/04/2024" },
-  { id: 4, nome: "Núcleo Waku Kungo", localizacao: "Bairro Novo, Waku Kungo", mensalidade: "Kz 95.000", status: "Regular", dataVencimento: "20/05/2024" },
-  { id: 5, nome: "Sede Municipal Gabela", localizacao: "Largo da Independência, Gabela", mensalidade: "Kz 150.000", status: "Regular", dataVencimento: "12/05/2024" },
+  { id: 1, nome: "Sede Provincial PL", localizacao: "Bairro Kitala, Sumbe", mensalidade: "Kz 450.000", status: "Regular", dataVencimento: "15/05/2024", dono: "Manuel Fonseca", contacto: "+244 923 000 111" },
+  { id: 2, nome: "Comité Comarca Calulo", localizacao: "Zona Comercial, Calulo", mensalidade: "Kz 180.000", status: "Aviso", dataVencimento: "02/05/2024", dono: "António Pedro", contacto: "+244 931 222 333" },
+  { id: 3, nome: "Secretariado Porto Amboim", localizacao: "Avenida Marginal, Porto Amboim", mensalidade: "Kz 220.000", status: "Crítico", dataVencimento: "28/04/2024", dono: "Maria Isabel", contacto: "+244 944 555 666" },
+  { id: 4, nome: "Núcleo Waku Kungo", localizacao: "Bairro Novo, Waku Kungo", mensalidade: "Kz 95.000", status: "Regular", dataVencimento: "20/05/2024", dono: "José Carlos", contacto: "+244 912 777 888" },
+  { id: 5, nome: "Sede Municipal Gabela", localizacao: "Largo da Independência, Gabela", mensalidade: "Kz 150.000", status: "Regular", dataVencimento: "12/05/2024", dono: "Joaquim Neto", contacto: "+244 925 999 000" },
 ];
 
 export const viaturasMock = [

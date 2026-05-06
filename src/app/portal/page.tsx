@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { nucleosMock, relatoriosGraficosMock, militantesMock, imoveisMock, viaturasMock } from '@/data/portalMock';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell
+  AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import {
   UserGroupIcon,
@@ -22,9 +22,66 @@ const COLORS = ['#FFD700', '#1E3A8A', '#3B82F6', '#0F172A'];
 import { usePortal } from '@/context/PortalContext';
 import GlobalSearch from '@/components/portal/GlobalSearch';
 import PortalModal from '@/components/portal/PortalModal';
-import { useState, useMemo } from 'react';
-import { MapPinIcon as MapPinSolid } from '@heroicons/react/24/solid';
+import React, { useState, useMemo, useRef } from 'react';
+import { MapPinIcon as MapPinSolid, PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import { MUNICIPIOS_CUANZA_SUL } from '@/data/portalMock';
+
+function RadioPlayer() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const toggleRadio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.error("Radio play error:", e));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden p-8 rounded-[2.5rem] shadow-xl shadow-pure-yellow/20 ring-4 ring-yellow-100 h-full min-h-[250px]">
+      <img src="/partidoliberarbandeira.jpg" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+
+      <audio ref={audioRef} src="https://paineldj5.com.br:20087/stream" preload="none" />
+
+      <div className="relative z-10 h-full flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-black tracking-tighter uppercase text-white shadow-sm">Nacional FM</h3>
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-red-600 animate-pulse' : 'bg-slate-400'}`} />
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{isPlaying ? 'No Ar' : 'Offline'}</p>
+            </div>
+          </div>
+          {/* Cabeçalho da Dashboard com Pesquisa Global     <p className="text-2xl font-black tracking-tighter mt-4 text-yellow-400 drop-shadow-lg">A VOZ DA MUDANÇA</p>
+               <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1 italic">Direto de Sumbe • 98.5 FM</p>*/}
+        </div>
+
+        <button
+          onClick={toggleRadio}
+          className={`w-full py-5 rounded-2xl font-black text-xs tracking-[0.2em] shadow-xl transition-all flex items-center justify-center space-x-3 active:scale-95 ${isPlaying ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-yellow-400 text-slate-900 hover:bg-yellow-500'
+            }`}
+        >
+          {isPlaying ? (
+            <>
+              <PauseIcon className="w-5 h-5" />
+              <span>PAUSAR EMISSÃO</span>
+            </>
+          ) : (
+            <>
+              <PlayIcon className="w-5 h-5" />
+              <span>OUVIR EM DIRECTO</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function PortalDashboard() {
   const { membros, nucleos, imoveis, viaturas, transacoes } = usePortal();
@@ -35,21 +92,21 @@ export default function PortalDashboard() {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const currentMonth = new Date().getMonth();
     const last6Months = [];
-    
+
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(currentMonth - i);
       const mName = months[d.getMonth()];
       const mYear = d.getFullYear();
-      
+
       // Contar membros registrados neste mês
       const count = membros.filter(m => {
-        if (!m.dataNascimento) return false; // Usando dataNascimento como fallback se dataRegisto não existir
-        const regDate = new Date(m.dataNascimento); // No mundo real seria dataRegisto
+        if (!m.dataNascimento) return false;
+        const regDate = new Date(m.dataNascimento);
         return regDate.getMonth() === d.getMonth() && regDate.getFullYear() === mYear;
       }).length;
 
-      // Pegar quotas pagas (transações de entrada na categoria membro)
+      // Pegar quotas pagas
       const quotas = transacoes.filter(t => {
         const tDate = new Date(t.data);
         return t.tipo === 'entrada' && t.categoria === 'Membro' && tDate.getMonth() === d.getMonth();
@@ -57,12 +114,23 @@ export default function PortalDashboard() {
 
       last6Months.push({
         periodo: mName,
-        producao: count + (Math.floor(Math.random() * 50) + 100), // Base mock + real
+        producao: count + (Math.floor(Math.random() * 50) + 100),
         quotasPagas: quotas + (Math.floor(Math.random() * 30) + 80)
       });
     }
     return last6Months;
   }, [membros, transacoes]);
+
+  const genderData = useMemo(() => {
+    const maleCount = membros.filter(m => m.sexo === 'Masculino').length;
+    const femaleCount = membros.filter(m => m.sexo === 'Feminino').length;
+    return [
+      { name: 'Masculino', value: maleCount || 3 }, // Fallback for mock if empty
+      { name: 'Feminino', value: femaleCount || 2 }
+    ];
+  }, [membros]);
+
+  const GENDER_COLORS = ['#1E3A8A', '#FFD700'];
 
   const stats = [
     { label: 'Membros Totais', value: membros.length, icon: UserGroupIcon, trend: '+12%', color: 'from-blue-600 to-blue-800' },
@@ -120,26 +188,18 @@ export default function PortalDashboard() {
 
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ffff00" stopOpacity={0.6} />
-                    <stop offset="95%" stopColor="#ffff00" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorQuota" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1E3A8A" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#1E3A8A" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="periodo" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
                 <Tooltip
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ fill: '#f8fafc' }}
                 />
-                <Area type="monotone" dataKey="producao" name="Cadastros" stroke="#ffff00" strokeWidth={6} fillOpacity={1} fill="url(#colorProd)" />
-                <Area type="monotone" dataKey="quotasPagas" name="Quotas" stroke="#1E3A8A" strokeWidth={4} fillOpacity={1} fill="url(#colorQuota)" />
-              </AreaChart>
+                <Legend iconType="circle" />
+                <Bar dataKey="producao" name="Cadastros" fill="#FFD700" radius={[10, 10, 0, 0]} />
+                <Bar dataKey="quotasPagas" name="Quotas" fill="#1E3A8A" radius={[10, 10, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -174,26 +234,13 @@ export default function PortalDashboard() {
             </div>
           </div>
 
-          <div className="relative overflow-hidden p-8 rounded-[2.5rem] shadow-xl shadow-pure-yellow/20 ring-4 ring-yellow-100">
-            <img src="/partidoliberarbandeira.jpg" className="absolute inset-0 w-full h-full object-cover opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-
-            <div className="relative z-10">
-              <h3 className="text-xl font-black tracking-tighter mb-2 uppercase text-white shadow-sm">Radio Liberal CS</h3>
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse border border-white" />
-                <p className="text-xs font-bold uppercase tracking-widest text-white/80">No Ar</p>
-              </div>
-              <p className="text-2xl font-black tracking-tighter mt-4 text-yellow-400 drop-shadow-lg">ENTREVISTA EXCLUSIVA</p>
-              <button className="mt-6 w-full py-4 bg-yellow-400 text-slate-900 rounded-2xl font-black text-xs hover:scale-105 transition-transform tracking-widest shadow-xl">OUVIR AGORA</button>
-            </div>
-          </div>
+          <RadioPlayer />
         </div>
       </div>
 
-      {/* Grid Inferior - Novos Militantes e Mapa */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-green p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+      {/* Grid Inferior - Novos Militantes, Sexo e Mapa */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
           <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-6">Militância Recente</h3>
           <div className="space-y-4">
             {membros.slice(-5).reverse().map((m, i) => (
@@ -230,6 +277,42 @@ export default function PortalDashboard() {
           </Link>
         </div>
 
+        {/* Gráfico de Pizza por Sexo */}
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col">
+          <h3 className="text-xl font-black text-slate-900 tracking-tighter mb-4">Gênero dos Membros</h3>
+          <div className="flex-1 min-h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={genderData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {genderData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {genderData.map((data, i) => (
+              <div key={i} className="text-center p-3 bg-slate-50 rounded-2xl">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{data.name}</p>
+                <p className="text-xl font-black text-slate-900">{data.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-6">
           <GlobeAltIcon className="w-24 h-24 text-slate-100" />
           <div className="text-center">
@@ -250,7 +333,7 @@ export default function PortalDashboard() {
               <p className="text-[10px] font-bold text-yellow-600 mt-1 uppercase">Estável</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setShowMap(true)}
             className="w-full py-4 bg-slate-900 text-yellow-400 rounded-2xl font-black text-xs hover:bg-slate-800 transition-colors tracking-widest italic shadow-xl"
           >
@@ -261,39 +344,39 @@ export default function PortalDashboard() {
 
       {/* MODAL DO MAPA TERRITORIAL */}
       <PortalModal isOpen={showMap} onClose={() => setShowMap(false)} title="Implantação Territorial - Cuanza Sul">
-         <div className="space-y-6">
-            <div className="flex items-center justify-between bg-blue-50 p-6 rounded-3xl border border-blue-100">
-               <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Cobertura Total</p>
-                  <h4 className="text-2xl font-black text-blue-900 tracking-tighter">{MUNICIPIOS_CUANZA_SUL.length} Municípios Mapeados</h4>
-               </div>
-               <div className="p-3 bg-white rounded-2xl shadow-sm">
-                  <GlobeAltIcon className="w-8 h-8 text-blue-600 animate-spin-slow" />
-               </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between bg-blue-50 p-6 rounded-3xl border border-blue-100">
+            <div>
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Cobertura Total</p>
+              <h4 className="text-2xl font-black text-blue-900 tracking-tighter">{MUNICIPIOS_CUANZA_SUL.length} Municípios Mapeados</h4>
             </div>
+            <div className="p-3 bg-white rounded-2xl shadow-sm">
+              <GlobeAltIcon className="w-8 h-8 text-blue-600 animate-spin-slow" />
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-               {MUNICIPIOS_CUANZA_SUL.map((mun, idx) => {
-                  const mCount = membros.filter(m => m.municipio === mun).length;
-                  return (
-                     <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl hover:border-yellow-400 transition-all group flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-yellow-400">
-                           <MapPinSolid className="w-5 h-5" />
-                        </div>
-                        <div>
-                           <p className="text-[10px] font-black text-slate-900 uppercase truncate max-w-[100px]">{mun}</p>
-                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{mCount} Militantes</p>
-                        </div>
-                     </div>
-                  );
-               })}
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            {MUNICIPIOS_CUANZA_SUL.map((mun, idx) => {
+              const mCount = membros.filter(m => m.municipio === mun).length;
+              return (
+                <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl hover:border-yellow-400 transition-all group flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-yellow-400">
+                    <MapPinSolid className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-900 uppercase truncate max-w-[100px]">{mun}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{mCount} Militantes</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-            <div className="bg-slate-900 p-6 rounded-3xl text-center">
-               <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-1">Nota Estratégica</p>
-               <p className="text-[11px] text-slate-300 italic">"Consolidar a base em Mussende e Cassongue para garantir 100% de vitória no Cuanza Sul."</p>
-            </div>
-         </div>
+          <div className="bg-slate-900 p-6 rounded-3xl text-center">
+            <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-1">Nota Estratégica</p>
+            <p className="text-[11px] text-slate-300 italic">"Consolidar a base em Mussende e Cassongue para garantir 100% de vitória no Cuanza Sul."</p>
+          </div>
+        </div>
       </PortalModal>
     </div>
   );

@@ -49,13 +49,13 @@ option {
 }
 
 .font-medium {
-  color: white;
+  color: rgb(0, 0, 0);
   font-weight: 500;
 }
 
 /* Texto com font-medium no menu deve ser branco */
 aside .font-medium {
-  color: white;
+  color: rgb(12, 12, 12);
 }
 
 /* Classe específica para texto branco em menus */

@@ -26,6 +26,7 @@ const categoriaIcon: Record<string, React.ElementType> = {
   Viatura: TruckIcon,
   Membro: UserGroupIcon,
   Administrativo: CogIcon,
+  Reserva: BanknotesIcon,
   Outros: EllipsisHorizontalCircleIcon,
 };
 
@@ -34,6 +35,7 @@ const categoriaCor: Record<string, string> = {
   Viatura: 'bg-yellow-100 text-yellow-700',
   Membro: 'bg-green-100 text-green-700',
   Administrativo: 'bg-slate-100 text-slate-700',
+  Reserva: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
   Outros: 'bg-purple-100 text-purple-700',
 };
 
@@ -133,6 +135,7 @@ export default function HistoricoTransacoes() {
             <option>Viatura</option>
             <option>Membro</option>
             <option>Administrativo</option>
+            <option>Reserva</option>
             <option>Outros</option>
           </select>
 

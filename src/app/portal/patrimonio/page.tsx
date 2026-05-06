@@ -26,16 +26,18 @@ import Link from 'next/link';
 import PortalModal from '@/components/portal/PortalModal';
 import { toast } from 'react-hot-toast';
 
-import { usePortal } from '@/context/PortalContext';
+import { usePortal, Imovel } from '@/context/PortalContext';
 import { useSearchParams } from 'next/navigation';
 
 function PatrimonioPageContent() {
    const { 
-      imoveis, addImovel, deleteImovel,
+      imoveis, addImovel, deleteImovel, updateImovel,
       viaturas, addViatura, deleteViatura,
       manutencoes, addManutencao,
       transacoes,
       getDividaAcumulada,
+      getTotalGastoImovel,
+      getTotalGastoViatura,
       saldo 
    } = usePortal();
 
@@ -60,14 +62,26 @@ function PatrimonioPageContent() {
 
    // Estados para Modais
    const [showModalImovel, setShowModalImovel] = useState(false);
+   const [isEditingImovel, setIsEditingImovel] = useState(false);
+   const [editingImovelId, setEditingImovelId] = useState<number | null>(null);
    const [showModalViatura, setShowModalViatura] = useState(false);
    const [showModalManutencao, setShowModalManutencao] = useState(false);
    const [showModalHistoricoVtr, setShowModalHistoricoVtr] = useState(false);
+   const [showModalDetalhesImovel, setShowModalDetalhesImovel] = useState(false);
    const [selectedVtr, setSelectedVtr] = useState<any>(null);
+   const [selectedImovelParaDetalhes, setSelectedImovelParaDetalhes] = useState<any>(null);
 
    // Estados dos Formulários
    const [imovelForm, setImovelForm] = useState({
-      nome: '', localizacao: 'Sumbe', mensalidade: '', dono: '', contacto: '', diaVencimento: '5'
+      nome: '', 
+      localizacao: '', 
+      mensalidade: '', 
+      diaVencimento: '', 
+      contrato: null as File | null, 
+      dono: '', 
+      contacto: '', 
+      formaPagamento: '6 Meses' as '6 Meses' | '1 Ano' | '5 Anos',
+      dataVencimento: ''
    });
    const [viaturaForm, setViaturaForm] = useState({
       modelo: '', matricula: '', ano: new Date().getFullYear(), departamento: 'Logística Provincial'
@@ -92,13 +106,25 @@ function PatrimonioPageContent() {
 
    const handleImovelSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      addImovel({
-         ...imovelForm,
-         status: 'Regular',
-         dataVencimento: new Date(new Date().getFullYear(), new Date().getMonth() + 1, parseInt(imovelForm.diaVencimento)).toISOString()
-      });
+      
+      if (isEditingImovel && editingImovelId) {
+         updateImovel(editingImovelId, {
+            ...imovelForm
+         });
+         toast.success('Dados do imóvel atualizados!');
+      } else {
+         addImovel({
+            ...imovelForm,
+            status: 'Regular',
+            dataVencimento: imovelForm.dataVencimento
+         });
+         toast.success('Imóvel registrado com sucesso!');
+      }
+
       setShowModalImovel(false);
-      toast.success('Imóvel registrado com sucesso!');
+      setIsEditingImovel(false);
+      setEditingImovelId(null);
+      setImovelForm({ nome: '', localizacao: '', mensalidade: '', diaVencimento: '', contrato: null, dono: '', contacto: '', formaPagamento: '6 Meses', dataVencimento: '' });
    };
 
    const handleViaturaSubmit = (e: React.FormEvent) => {
@@ -126,6 +152,24 @@ function PatrimonioPageContent() {
       setShowModalManutencao(false);
       setManutencaoForm({ servico: '', custo: '', data: new Date().toISOString().split('T')[0] });
       toast.success('Manutenção registrada e sincronizada!');
+   };
+
+   const handleEditImovel = (imovel: Imovel) => {
+      setImovelForm({
+         nome: imovel.nome,
+         localizacao: imovel.localizacao,
+         mensalidade: imovel.mensalidade,
+         diaVencimento: imovel.diaVencimento || '',
+         contrato: null,
+         dono: imovel.dono || '',
+         contacto: imovel.contacto || '',
+         formaPagamento: imovel.formaPagamento || '6 Meses',
+         dataVencimento: imovel.dataVencimento
+      });
+      setIsEditingImovel(true);
+      setEditingImovelId(imovel.id);
+      setShowModalDetalhesImovel(false);
+      setShowModalImovel(true);
    };
 
    const imoveisFiltrados = imoveis.filter(i => {
@@ -274,7 +318,7 @@ function PatrimonioPageContent() {
                <input
                   type="text"
                   placeholder={`Pesquisar ${activeTab === 'imoveis' ? 'sedes ou localizações' : 'modelos ou matrículas'}...`}
-                  className="w-full bg-slate-50 border-transparent rounded-2xl p-4 pl-12 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all"
+                  className="w-full bg-slate-50 border-transparent rounded-2xl p-4 pl-12 text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all"
                   onChange={(e) => setFiltroSede(e.target.value)}
                />
             </div>
@@ -308,21 +352,44 @@ function PatrimonioPageContent() {
                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
                {/* Renderização de Imóveis */}
-               {activeTab === 'imoveis' && imoveisFiltrados.map((imovel) => (
+               {activeTab === 'imoveis' && imoveisFiltrados.map((imovel) => {
+                  const hoje = new Date();
+                  hoje.setHours(0, 0, 0, 0); // Normalizar hoje para meia-noite
+
+                  const venc = new Date(imovel.dataVencimento + 'T00:00:00'); // Normalizar vencimento
+                  const diff = venc.getTime() - hoje.getTime();
+                  const diasRestantes = Math.floor(diff / (1000 * 60 * 60 * 24));
+                  
+                  const isExpirado = diasRestantes <= 0;
+                  const isAviso = diasRestantes <= 10 && diasRestantes > 0;
+
+                  return (
                   <motion.div
                      key={imovel.id}
                      whileHover={{ y: -10 }}
-                     className={`p-8 rounded-[3rem] shadow-xl border flex flex-col justify-between group overflow-hidden relative transition-all duration-500 ${imovel.status === 'Crítico' ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'
-                        }`}
+                     className={`p-8 rounded-[3rem] shadow-xl border flex flex-col justify-between group overflow-hidden relative transition-all duration-500 ${
+                        isExpirado ? 'bg-red-50 border-red-200 ring-4 ring-red-100 animate-pulse' : 
+                        isAviso ? 'bg-yellow-50 border-yellow-200 ring-4 ring-yellow-100 animate-pulse' : 
+                        'bg-white border-slate-100'
+                     }`}
                   >
+                     {/* Alerta Crítico / Aviso */}
+                     {(isExpirado || isAviso) && (
+                        <div className={`absolute top-0 left-0 right-0 py-2 text-center text-[8px] font-black uppercase tracking-[0.2em] ${isExpirado ? 'bg-red-600 text-white' : 'bg-yellow-400 text-slate-900'}`}>
+                           {isExpirado ? `CRÍTICO: RENDAS ATRASADAS (${Math.abs(diasRestantes)} DIAS)` : `AVISO: VENCIMENTO EM ${diasRestantes} DIAS`}
+                        </div>
+                     )}
                      <div className="space-y-6">
                         <div className="flex justify-between items-start">
                            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center ${imovel.status === 'Crítico' ? 'bg-red-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
                               <BuildingOfficeIcon className="w-8 h-8" />
                            </div>
-                           <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest ${imovel.status === 'Regular' ? 'bg-green-100 text-green-700' : imovel.status === 'Aviso' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'
-                              }`}>
-                              {imovel.status}
+                           <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest ${
+                              isExpirado ? 'bg-red-600 text-white' : 
+                              isAviso ? 'bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-400/20' : 
+                              'bg-green-100 text-green-700'
+                           }`}>
+                              {isExpirado ? 'EXPIRADO' : isAviso ? 'EM RENOVAÇÃO' : 'REGULAR'}
                            </span>
                         </div>
                         <div>
@@ -335,20 +402,26 @@ function PatrimonioPageContent() {
                               <p className="text-sm font-black text-slate-900">{imovel.mensalidade}</p>
                            </div>
                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Total Pago (Ano)</p>
-                              <p className="text-sm font-black text-blue-900">4.500.000 Kz</p>
+                              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Total Gasto (Histórico)</p>
+                              <p className="text-sm font-black text-blue-900">{getTotalGastoImovel(imovel.id).toLocaleString()} Kz</p>
                            </div>
                         </div>
                      </div>
                      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                        <Link href={`/portal/patrimonio/historico-imovel?id=${imovel.id}`} className="text-[10px] font-black uppercase text-slate-900 hover:underline">Ver Dono & Contrato</Link>
+                        <button 
+                           onClick={() => { setSelectedImovelParaDetalhes(imovel); setShowModalDetalhesImovel(true); }}
+                           className="text-[10px] font-black uppercase text-slate-900 hover:underline"
+                        >
+                           Ver Dono & Contrato
+                        </button>
                         <div className="flex items-center space-x-2">
                            <button onClick={() => handleDeleteImovel(imovel.id)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
                            <button className="p-3 bg-slate-900 text-white rounded-xl"><ChevronRightIcon className="w-4 h-4" /></button>
                         </div>
                      </div>
                   </motion.div>
-               ))}
+                  );
+               })}
 
                {/* Renderização de Viaturas */}
                {activeTab === 'viaturas' && viaturasFiltradas.map((car) => (
@@ -457,7 +530,7 @@ function PatrimonioPageContent() {
                         required
                         value={imovelForm.nome}
                         onChange={e => setImovelForm({...imovelForm, nome: e.target.value})}
-                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Sede Provincial" />
+                        type="text" className="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-black focus:bg-white focus:border-yellow-400 transition-all outline-none" placeholder="Ex: Sede Provincial" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Município</label>
@@ -493,7 +566,24 @@ function PatrimonioPageContent() {
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-6 p-6 bg-slate-900 rounded-[2rem] text-white">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Carregar Contrato de Arrendamento</label>
+                   <div className="relative group cursor-pointer">
+                      <input 
+                         type="file" 
+                         className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                         onChange={e => setImovelForm({...imovelForm, contrato: e.target.files?.[0] || null})}
+                      />
+                      <div className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center space-x-3 group-hover:bg-white group-hover:border-yellow-400 transition-all">
+                         <CloudArrowUpIcon className="w-5 h-5 text-slate-400 group-hover:text-yellow-600" />
+                         <span className="text-[10px] font-black text-slate-400 uppercase group-hover:text-slate-900">
+                            {imovelForm.contrato ? imovelForm.contrato.name : 'Selecionar Documento (PDF/JPG)'}
+                         </span>
+                      </div>
+                   </div>
+                </div>
+
+               <div className="grid grid-cols-3 gap-6 p-6 bg-slate-900 rounded-[2rem] text-white">
                   <div className="space-y-2">
                      <p className="text-[9px] font-black text-yellow-400 uppercase">Mensalidade (Kz)</p>
                      <input 
@@ -503,14 +593,40 @@ function PatrimonioPageContent() {
                         type="text" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-white outline-none" placeholder="0.00" />
                   </div>
                   <div className="space-y-2">
-                     <p className="text-[9px] font-black text-yellow-400 uppercase">Dia de Vencimento</p>
+                     <p className="text-[9px] font-black text-yellow-400 uppercase">1º Vencimento</p>
                      <input 
                         required
-                        value={imovelForm.diaVencimento}
-                        onChange={e => setImovelForm({...imovelForm, diaVencimento: e.target.value})}
-                        type="number" max="31" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-white outline-none" placeholder="Ex: 5" />
+                        value={imovelForm.dataVencimento}
+                        onChange={e => setImovelForm({...imovelForm, dataVencimento: e.target.value})}
+                        type="date" className="w-full bg-white/10 border-none rounded-xl p-3 text-sm font-black text-white outline-none" />
                   </div>
-               </div>
+                   <div className="space-y-2">
+                      <p className="text-[9px] font-black text-yellow-400 uppercase">Dia Cobrança</p>
+                      <input 
+                         required
+                         value={imovelForm.diaVencimento}
+                         onChange={e => setImovelForm({...imovelForm, diaVencimento: e.target.value})}
+                         type="number" max="31" className="w-full bg-white/10 border-none rounded-xl p-3 text-lg font-black text-white outline-none" placeholder="Ex: 5" />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Forma de Pagamento Contratual</label>
+                   <div className="grid grid-cols-3 gap-4">
+                      {['6 Meses', '1 Ano', '5 Anos'].map(period => (
+                         <button
+                            key={period}
+                            type="button"
+                            onClick={() => setImovelForm({...imovelForm, formaPagamento: period as any})}
+                            className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                               imovelForm.formaPagamento === period ? 'bg-slate-900 text-white shadow-xl' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                            }`}
+                         >
+                            {period}
+                         </button>
+                      ))}
+                   </div>
+                </div>
 
                <button type="submit" className="w-full py-6 bg-yellow-400 text-slate-900 rounded-3xl font-black uppercase tracking-widest hover:bg-yellow-500 transition-all shadow-xl active:scale-95">Salvar Registro de Sede</button>
             </form>
@@ -601,7 +717,81 @@ function PatrimonioPageContent() {
                </div>
                <button type="submit" className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Registrar Manutenção no Histórico</button>
             </form>
-         </PortalModal>
+          </PortalModal>
+
+          {/* MODAL: DETALHES DO IMÓVEL */}
+          <PortalModal isOpen={showModalDetalhesImovel} onClose={() => setShowModalDetalhesImovel(false)} title="Detalhes do Imóvel & Contrato">
+             {selectedImovelParaDetalhes && (
+                <div className="space-y-8">
+                   <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden">
+                      <div className="relative z-10">
+                         <p className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.3em] mb-2">Designação Oficial</p>
+                         <h3 className="text-3xl font-black italic tracking-tighter uppercase">{selectedImovelParaDetalhes.nome}</h3>
+                         <div className="mt-4 flex items-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                            <BuildingOfficeIcon className="w-4 h-4 mr-2" />
+                            {selectedImovelParaDetalhes.localizacao}
+                         </div>
+                      </div>
+                      <div className="absolute -bottom-10 -right-10 opacity-10">
+                         <BuildingOfficeIcon className="w-48 h-48" />
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Proprietário</h4>
+                         <div>
+                            <p className="text-sm font-black text-slate-900 uppercase">{selectedImovelParaDetalhes.dono || 'Não Informado'}</p>
+                            <p className="text-xs text-slate-400 mt-1 font-bold italic">Titular do Contrato</p>
+                         </div>
+                      </div>
+                      <div className="space-y-4">
+                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Contacto Directo</h4>
+                         <div>
+                            <p className="text-sm font-black text-blue-600">{selectedImovelParaDetalhes.contacto || 'Sem Contacto'}</p>
+                            <p className="text-xs text-slate-400 mt-1 font-bold">Terminal Móvel / WhatsApp</p>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                      <div className="flex items-center justify-between">
+                         <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ciclo de Pagamento</p>
+                            <p className="text-sm font-black text-slate-900 uppercase italic">{selectedImovelParaDetalhes.formaPagamento || 'Não Definido'}</p>
+                         </div>
+                         <div className="p-3 bg-white rounded-xl shadow-sm">
+                            <CalendarIcon className="w-6 h-6 text-blue-600" />
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Documentação Digitalizada</h4>
+                      <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center text-center group hover:bg-white hover:border-yellow-400 transition-all cursor-pointer">
+                         <DocumentArrowUpIcon className="w-12 h-12 text-slate-300 mb-4 group-hover:text-yellow-600 transition-colors" />
+                         <p className="text-xs font-black text-slate-900 uppercase mb-1">Visualizar Contrato de Arrendamento</p>
+                         <p className="text-[10px] text-slate-400 font-bold uppercase">Formato PDF / Imagem de Alta Resolução</p>
+                      </div>
+                   </div>
+
+                   <div className="flex space-x-4">
+                      <button 
+                         onClick={() => handleEditImovel(selectedImovelParaDetalhes)}
+                         className="flex-1 py-5 bg-slate-100 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                      >
+                         Editar Dados
+                      </button>
+                      <button 
+                         onClick={() => setShowModalDetalhesImovel(false)}
+                         className="flex-1 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+                      >
+                         Fechar Detalhes
+                      </button>
+                   </div>
+                </div>
+             )}
+          </PortalModal>
       </div>
    );
 }

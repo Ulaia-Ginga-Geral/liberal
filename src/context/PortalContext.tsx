@@ -64,6 +64,10 @@ export interface Imovel {
   mensalidade: string;
   status: 'Regular' | 'Aviso' | 'Crítico';
   dataVencimento: string;
+  dono?: string;
+  contacto?: string;
+  formaPagamento?: '6 Meses' | '1 Ano' | '5 Anos';
+  diaVencimento?: string;
 }
 
 export interface Nucleo {
@@ -80,8 +84,10 @@ export interface Transacao {
   descricao: string;
   valor: number;
   tipo: 'entrada' | 'saida';
-  categoria: 'Sede' | 'Viatura' | 'Membro' | 'Administrativo' | 'Outros';
+  categoria: 'Sede' | 'Viatura' | 'Membro' | 'Administrativo' | 'Outros' | 'Reserva' | 'Quotas';
   status: 'Pendente' | 'Aprovado';
+  comprovativo?: string;
+  entidadeId?: number; // ID do Imóvel ou Viatura associada
 }
 
 export interface Manutencao {
@@ -103,6 +109,15 @@ export interface Documento {
   categoria?: string;
 }
 
+export interface Missao {
+  id: number;
+  titulo: string;
+  data: string;
+  hora: string;
+  local: string;
+  responsavel: string;
+}
+
 interface PortalContextType {
   // Membros
   membros: Membro[];
@@ -111,7 +126,7 @@ interface PortalContextType {
   deleteMembro: (id: number) => void;
   getMembro: (id: number) => Membro | undefined;
 
-  // Usuários
+  militantes: Membro[];
   usuarios: Usuario[];
   addUsuario: (usuario: Omit<Usuario, 'id'>) => void;
 
@@ -124,6 +139,7 @@ interface PortalContextType {
   imoveis: Imovel[];
   addImovel: (imovel: Omit<Imovel, 'id'>) => void;
   deleteImovel: (id: number) => void;
+  updateImovel: (id: number, updated: Partial<Imovel>) => void;
 
   // Núcleos
   nucleos: Nucleo[];
@@ -136,6 +152,9 @@ interface PortalContextType {
   addTransacao: (transacao: Omit<Transacao, 'id'>) => void;
   deleteTransacao: (id: number) => void;
   aprovarTransacao: (id: number) => void;
+  reservaLivre: number;
+  transferirParaReserva: (valor: number) => void;
+  transferirParaSaldo: (valor: number) => void;
 
   // Manutenções
   manutencoes: Manutencao[];
@@ -149,7 +168,15 @@ interface PortalContextType {
 
   // Helpers
   getDividaAcumulada: () => number;
+  getTotalGastoImovel: (id: number) => number;
+  getTotalGastoViatura: (id: number) => number;
   logout: () => void;
+
+  // Missões (Agenda)
+  missoes: Missao[];
+  addMissao: (missao: Omit<Missao, 'id'>) => void;
+  deleteMissao: (id: number) => void;
+  updateMissao: (id: number, missao: Partial<Missao>) => void;
 }
 
 const PortalContext = createContext<PortalContextType | undefined>(undefined);
@@ -159,12 +186,14 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
+  const [militantes, setMilitantes] = useState<Membro[]>([]);
   const [nucleos, setNucleos] = useState<Nucleo[]>([]);
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [saldo, setSaldo] = useState<number>(0); 
-
+  const [reservaLivre, setReservaLivre] = useState<number>(0);
+  const [missoes, setMissoes] = useState<Missao[]>([]);
   const logout = () => {
     localStorage.clear();
     window.location.href = '/login';
@@ -177,10 +206,11 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       return saved ? JSON.parse(saved) : mock;
     };
 
-    setMembros(loadData('pl_membros', militantesMock));
+    setMembros(loadData('pl_membros', militantesMock as Membro[]));
     setUsuarios(loadData('pl_usuarios', usuariosMock));
     setViaturas(loadData('pl_viaturas', viaturasMock));
     setImoveis(loadData('pl_imoveis', imoveisMock as Imovel[]));
+    setMilitantes(loadData('pl_militantes', militantesMock as Membro[]));
     setNucleos(loadData('pl_nucleos', nucleosMock));
     
     const transacoesIniciais: Transacao[] = historicoMock.map((h, i) => ({
@@ -195,6 +225,11 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     setTransacoes(loadData('pl_transacoes', transacoesIniciais));
     setManutencoes(loadData('pl_manutencoes', historicoMock as Manutencao[]));
     setDocumentos(loadData('pl_documentos', []));
+    setMissoes(loadData('pl_missoes', [
+      { id: 1, titulo: "Conferência Provincial", data: "2024-05-15", hora: "09:00", local: "Sumbe - Cine Cuanza", responsavel: "Secretariado Provincial" },
+      { id: 2, titulo: "Missão Diplomática em Luanda", data: "2024-05-20", hora: "08:30", local: "Luanda - Aeroporto", responsavel: "Presidente Provincial" },
+      { id: 3, titulo: "Mobilização em Calulo", data: "2024-06-02", hora: "14:00", local: "Calulo - Centro Cultural", responsavel: "Direcção de Mobilização" },
+    ]));
 
     const savedSaldo = localStorage.getItem('pl_saldo');
     if (savedSaldo) setSaldo(Number(savedSaldo));
@@ -203,6 +238,9 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       const total = transacoesIniciais.reduce((acc, t) => t.tipo === 'entrada' ? acc + t.valor : acc - t.valor, 0);
       setSaldo(total);
     }
+
+    const savedReserva = localStorage.getItem('pl_reserva_livre');
+    if (savedReserva) setReservaLivre(Number(savedReserva));
   }, []);
 
   // --- Persistir LocalStorage ---
@@ -215,8 +253,10 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('pl_transacoes', JSON.stringify(transacoes));
     localStorage.setItem('pl_manutencoes', JSON.stringify(manutencoes));
     localStorage.setItem('pl_documentos', JSON.stringify(documentos));
+    localStorage.setItem('pl_missoes', JSON.stringify(missoes));
     localStorage.setItem('pl_saldo', saldo.toString());
-  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo]);
+    localStorage.setItem('pl_reserva_livre', reservaLivre.toString());
+  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo, reservaLivre]);
 
   // --- Funções Auxiliares de Persistência ---
   const saveData = <T,>(key: string, data: T[]): T[] => {
@@ -302,6 +342,38 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const transferirParaReserva = (valor: number) => {
+    if (valor > saldo) return;
+    
+    const t: Omit<Transacao, 'id'> = {
+      data: new Date().toISOString().split('T')[0],
+      descricao: 'Transferência para Reserva Livre',
+      valor,
+      tipo: 'saida',
+      categoria: 'Reserva',
+      status: 'Aprovado'
+    };
+    
+    addTransacao(t);
+    setReservaLivre(prev => prev + valor);
+  };
+
+  const transferirParaSaldo = (valor: number) => {
+    if (valor > reservaLivre) return;
+    
+    const t: Omit<Transacao, 'id'> = {
+      data: new Date().toISOString().split('T')[0],
+      descricao: 'Resgate de Reserva Livre',
+      valor,
+      tipo: 'entrada',
+      categoria: 'Reserva',
+      status: 'Aprovado'
+    };
+    
+    addTransacao(t);
+    setReservaLivre(prev => prev - valor);
+  };
+
   // --- Manutenções ---
   const addManutencao = (m: Omit<Manutencao, 'id'>) => {
     const newDoc = { ...m, id: Date.now() };
@@ -343,17 +415,49 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   };
 
+  const getTotalGastoImovel = (id: number) => {
+    return transacoes
+      .filter(t => t.entidadeId === id && t.categoria === 'Sede' && t.tipo === 'saida' && t.status === 'Aprovado')
+      .reduce((acc, t) => acc + t.valor, 0);
+  };
+
+  const getTotalGastoViatura = (id: number) => {
+    return transacoes
+      .filter(t => t.entidadeId === id && t.categoria === 'Viatura' && t.tipo === 'saida' && t.status === 'Aprovado')
+      .reduce((acc, t) => acc + t.valor, 0);
+  };
+
+  const addMissao = (missao: Omit<Missao, 'id'>) => {
+    const novo = { ...missao, id: Date.now() };
+    setMissoes([novo as Missao, ...missoes]);
+  };
+
+  const deleteMissao = (id: number) => {
+    setMissoes(missoes.filter(m => m.id !== id));
+  };
+
+  const updateMissao = (id: number, updated: Partial<Missao>) => {
+    setMissoes(missoes.map(m => m.id === id ? { ...m, ...updated } : m));
+  };
+
+  const updateImovel = (id: number, updated: Partial<Imovel>) => {
+    setImoveis(imoveis.map(i => i.id === id ? { ...i, ...updated } : i));
+  };
+
   return (
     <PortalContext.Provider value={{ 
       membros, addMembro, updateMembro, deleteMembro, getMembro,
+      militantes,
       usuarios, addUsuario,
       nucleos, addNucleo, deleteNucleo,
       viaturas, addViatura, deleteViatura,
-      imoveis, addImovel, deleteImovel,
-      saldo, transacoes, addTransacao, deleteTransacao, aprovarTransacao,
+      imoveis, addImovel, deleteImovel, updateImovel,
+      saldo, reservaLivre, transacoes, addTransacao, deleteTransacao, aprovarTransacao,
+      transferirParaReserva, transferirParaSaldo,
       manutencoes, addManutencao, deleteManutencao,
       documentos, addDocumento, deleteDocumento,
-      getDividaAcumulada, logout
+      getDividaAcumulada, getTotalGastoImovel, getTotalGastoViatura, logout,
+      missoes, addMissao, deleteMissao, updateMissao
     }}>
       {children}
     </PortalContext.Provider>

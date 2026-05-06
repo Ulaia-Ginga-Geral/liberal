@@ -132,29 +132,29 @@ export default function PortalSidebar() {
               <div key={category.title} className="space-y-2">
                 <h2 className="text-[9px] font-black text-blue-300/40 uppercase px-4 mb-3 tracking-[0.3em] font-serif italic border-b border-white/5 pb-1">{category.title}</h2>
                 <div className="space-y-1">
-                {category.items.map((item) => {
-                  const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`
+                  {category.items.map((item) => {
+                    const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`
                           flex items-center px-4 py-3 text-xs font-bold rounded-xl transition-all group relative
                           ${isActive
-                          ? 'bg-yellow-400 text-primary-blue shadow-xl shadow-yellow-400/10 scale-[1.02]'
-                          : 'text-blue-100 hover:text-white hover:bg-white/5'
-                        }
+                            ? 'bg-yellow-400 text-primary-blue shadow-xl shadow-yellow-400/10 scale-[1.02]'
+                            : 'text-blue-100 hover:text-white hover:bg-white/5'
+                          }
                         `}
-                    >
-                      <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-blue-300 group-hover:text-white'}`} />
-                      {item.name}
-                      {isActive && (
-                        <motion.div layoutId="activeLight" className="absolute right-2 w-1.5 h-1.5 bg-primary-blue rounded-full" />
-                      )}
-                    </Link>
-                  );
-                })}
+                      >
+                        <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-primary-blue' : 'text-blue-300 group-hover:text-white'}`} />
+                        {item.name}
+                        {isActive && (
+                          <motion.div layoutId="activeLight" className="absolute right-2 w-1.5 h-1.5 bg-primary-blue rounded-full" />
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -168,9 +168,9 @@ export default function PortalSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-white truncate">Administrator</p>
-                <p className="text-[10px] text-blue-300 truncate font-bold uppercase tracking-tight">Kwanza Sul</p>
+                <p className="text-[10px] text-blue-300 truncate font-bold uppercase tracking-tight">CUANZA SUL</p>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="p-2 text-blue-300 hover:text-yellow-400 transition-colors"
                 title="Sair do Sistema"

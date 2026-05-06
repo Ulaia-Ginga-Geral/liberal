@@ -19,15 +19,15 @@ import {
 } from '@heroicons/react/24/outline';
 
 function PortalCadastroContent() {
-  const { 
+  const {
     addMembro, membros, updateMembro, deleteMembro,
     usuarios, addUsuario,
     nucleos, addNucleo,
-    viaturas 
+    viaturas
   } = usePortal();
-  
+
   const [editingId, setEditingId] = useState<number | null>(null);
-  
+
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'usuarios';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -48,7 +48,7 @@ function PortalCadastroContent() {
   });
 
   const [usuarioForm, setUsuarioForm] = useState({
-    nome: '', hierarquia: 'Secretário Municipal', municipioOrigem: 'Sumbe',
+    membroId: '', hierarquia: 'Secretário Municipal', municipioOrigem: 'Sumbe',
   });
 
   const [msgForm, setMsgForm] = useState({
@@ -77,10 +77,10 @@ function PortalCadastroContent() {
       addMembro({ ...membroForm, provincia: PROVINCIA_SEDE, activo: membroForm.tipo === 'Activo' });
       toast.success('Militante cadastrado!');
     }
-    setMembroForm({ 
+    setMembroForm({
       nome: '', pseudonimo: '', nomePai: '', nomeMae: '', naturalidade: '', dataNascimento: '',
       bi: '', localEmissao: '', validoAte: '', municipio: 'Sumbe', comuna: '', bairro: '', rua: '', nucleo: '',
-      dataRegisto: '', tipo: 'Activo', sexo: 'Masculino', profissao: '', observacoes: '', assinaturaData: '', foto: '' 
+      dataRegisto: '', tipo: 'Activo', sexo: 'Masculino', profissao: '', observacoes: '', assinaturaData: '', foto: ''
     });
   };
 
@@ -106,9 +106,25 @@ function PortalCadastroContent() {
 
   const handleUsuarioSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addUsuario({ ...usuarioForm, provincia: PROVINCIA_SEDE, ativo: true });
-    toast.success('Oficial nomeado!');
-    setUsuarioForm({ nome: '', hierarquia: 'Secretário Municipal', municipioOrigem: 'Sumbe' });
+    const selectedMembro = membros.find(m => m.id === parseInt(usuarioForm.membroId));
+    if (!selectedMembro) {
+      toast.error('Selecione um membro válido!');
+      return;
+    }
+
+    addUsuario({ 
+      nome: selectedMembro.nome, 
+      hierarquia: usuarioForm.hierarquia, 
+      municipioOrigem: usuarioForm.hierarquia === 'Secretário Municipal' ? usuarioForm.municipioOrigem : undefined,
+      provincia: PROVINCIA_SEDE, 
+      ativo: true 
+    });
+
+    // Atualizar o cargo no registro de membro
+    updateMembro(selectedMembro.id, { profissao: usuarioForm.hierarquia });
+
+    toast.success('Oficial nomeado e cargo de militante atualizado!');
+    setUsuarioForm({ membroId: '', hierarquia: 'Secretário Municipal', municipioOrigem: 'Sumbe' });
   };
 
   return (
@@ -118,7 +134,7 @@ function PortalCadastroContent() {
           { id: 'usuarios', label: 'Hierarquia Política', icon: ShieldCheckIcon },
           { id: 'militantes', label: 'Nova Ficha de Inscrição', icon: UserPlusIcon },
           { id: 'nucleos', label: 'Genealogia Política', icon: ListBulletIcon },
-          { id: 'comunicacao', label: 'Mensagens & Viagens', icon: PaperAirplaneIcon },
+
           { id: 'controle', label: 'Controle Online (Status)', icon: SignalIcon },
         ].map((tab) => (
           <button
@@ -162,17 +178,37 @@ function PortalCadastroContent() {
                   <h3 className="text-2xl font-black tracking-tighter mb-8 uppercase italic">Nomear Novo Oficial</h3>
                   <form onSubmit={handleUsuarioSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest ml-1">Nome Completo</label>
-                      <input required value={usuarioForm.nome} onChange={e => setUsuarioForm({...usuarioForm, nome: e.target.value})} type="text" className="w-full bg-white/10 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-white focus:bg-white focus:text-slate-900 transition-all outline-none" placeholder="Nome do Oficial" />
+                      <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest ml-1">Selecionar Membro</label>
+                      <select required value={usuarioForm.membroId} onChange={e => setUsuarioForm({ ...usuarioForm, membroId: e.target.value })} className="w-full bg-white/10 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-white focus:bg-white focus:text-slate-900 transition-all outline-none">
+                        <option value="" className="text-blue-900">Selecione o membro...</option>
+                        {membros.map(m => (
+                           <option key={m.id} value={m.id} className="text-blue-900">{m.nome} - {m.bi}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest ml-1">Cargo / Hierarquia</label>
-                      <select value={usuarioForm.hierarquia} onChange={e => setUsuarioForm({...usuarioForm, hierarquia: e.target.value})} className="w-full bg-white/10 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-white focus:bg-white focus:text-slate-900 transition-all outline-none">
+                      <select value={usuarioForm.hierarquia} onChange={e => setUsuarioForm({ ...usuarioForm, hierarquia: e.target.value })} className="w-full bg-white/10 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-white focus:bg-white focus:text-slate-900 transition-all outline-none">
                         <option className="text-blue-900">Secretário Provincial</option>
                         <option className="text-blue-900">Secretário Municipal</option>
                         <option className="text-blue-900">Coordenador de Núcleo</option>
                       </select>
                     </div>
+
+                    {usuarioForm.hierarquia === 'Secretário Municipal' && (
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black text-blue-300 uppercase tracking-widest ml-1">Município de Atuação</label>
+                          <select 
+                            value={usuarioForm.municipioOrigem} 
+                            onChange={e => setUsuarioForm({...usuarioForm, municipioOrigem: e.target.value})} 
+                            className="w-full bg-white/10 border-2 border-transparent rounded-2xl p-4 text-sm font-black text-white focus:bg-white focus:text-slate-900 transition-all outline-none"
+                          >
+                             {MUNICIPIOS_CUANZA_SUL.map(m => (
+                                <option key={m} value={m} className="text-blue-900">{m}</option>
+                             ))}
+                          </select>
+                       </div>
+                    )}
                     <button className="w-full py-5 bg-yellow-400 text-blue-900 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] transition-all">Confirmar Nomeação</button>
                   </form>
                 </div>
@@ -203,20 +239,20 @@ function PortalCadastroContent() {
                 <div className="space-y-4">
                   <h3 className="font-black text-xs uppercase border-b-2 border-slate-900 inline-block">1. Dados Pessoais</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome Completo</label><input required value={membroForm.nome} onChange={e => setMembroForm({...membroForm, nome: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 uppercase outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Pseudônimo</label><input value={membroForm.pseudonimo} onChange={e => setMembroForm({...membroForm, pseudonimo: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome do Pai</label><input value={membroForm.nomePai} onChange={e => setMembroForm({...membroForm, nomePai: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome da Mãe</label><input value={membroForm.nomeMae} onChange={e => setMembroForm({...membroForm, nomeMae: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome Completo</label><input required value={membroForm.nome} onChange={e => setMembroForm({ ...membroForm, nome: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 uppercase outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Pseudônimo</label><input value={membroForm.pseudonimo} onChange={e => setMembroForm({ ...membroForm, pseudonimo: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
 
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Naturalidade</label><input value={membroForm.naturalidade} onChange={e => setMembroForm({...membroForm, naturalidade: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Data de Nascimento</label><input value={membroForm.dataNascimento} onChange={e => setMembroForm({...membroForm, dataNascimento: e.target.value})} type="date" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome do Pai</label><input value={membroForm.nomePai} onChange={e => setMembroForm({ ...membroForm, nomePai: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Nome da Mãe</label><input value={membroForm.nomeMae} onChange={e => setMembroForm({ ...membroForm, nomeMae: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Naturalidade</label><input value={membroForm.naturalidade} onChange={e => setMembroForm({ ...membroForm, naturalidade: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Data de Nascimento</label><input value={membroForm.dataNascimento} onChange={e => setMembroForm({ ...membroForm, dataNascimento: e.target.value })} type="date" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Número do B.I</label><input required value={membroForm.bi} onChange={e => setMembroForm({...membroForm, bi: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                      <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Validade</label><input value={membroForm.validoAte} onChange={e => setMembroForm({...membroForm, validoAte: e.target.value})} type="text" placeholder="DD/MM/AAAA" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600 text-center" /></div>
+                      <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Número do B.I</label><input required value={membroForm.bi} onChange={e => setMembroForm({ ...membroForm, bi: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                      <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Validade</label><input value={membroForm.validoAte} onChange={e => setMembroForm({ ...membroForm, validoAte: e.target.value })} type="text" placeholder="DD/MM/AAAA" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600 text-center" /></div>
                     </div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Local de Emissão</label><input value={membroForm.localEmissao} onChange={e => setMembroForm({...membroForm, localEmissao: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Local de Emissão</label><input value={membroForm.localEmissao} onChange={e => setMembroForm({ ...membroForm, localEmissao: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
                   </div>
                 </div>
 
@@ -224,42 +260,42 @@ function PortalCadastroContent() {
                   <h3 className="font-black text-xs uppercase border-b-2 border-slate-900 inline-block">2. Residência & Localização</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Município</label>
-                      <select value={membroForm.municipio} onChange={e => setMembroForm({...membroForm, municipio: e.target.value})} className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600 bg-transparent">
+                      <select value={membroForm.municipio} onChange={e => setMembroForm({ ...membroForm, municipio: e.target.value })} className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600 bg-transparent">
                         {MUNICIPIOS_CUANZA_SUL.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                     </div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Comuna / Distrito</label><input value={membroForm.comuna} onChange={e => setMembroForm({...membroForm, comuna: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Bairro</label><input value={membroForm.bairro} onChange={e => setMembroForm({...membroForm, bairro: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Rua / Casa</label><input value={membroForm.rua} onChange={e => setMembroForm({...membroForm, rua: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Núcleo de Base</label><input value={membroForm.nucleo} onChange={e => setMembroForm({...membroForm, nucleo: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Comuna / Distrito</label><input value={membroForm.comuna} onChange={e => setMembroForm({ ...membroForm, comuna: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Bairro</label><input value={membroForm.bairro} onChange={e => setMembroForm({ ...membroForm, bairro: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Rua / Casa</label><input value={membroForm.rua} onChange={e => setMembroForm({ ...membroForm, rua: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Núcleo de Base</label><input value={membroForm.nucleo} onChange={e => setMembroForm({ ...membroForm, nucleo: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="font-black text-xs uppercase border-b-2 border-slate-900 inline-block">3. Informação Política</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Data de Registo</label><input value={membroForm.dataRegisto} onChange={e => setMembroForm({...membroForm, dataRegisto: e.target.value})} type="date" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Profissão/Ocupação</label><input value={membroForm.profissao} onChange={e => setMembroForm({...membroForm, profissao: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
-                    
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Data de Registo</label><input value={membroForm.dataRegisto} onChange={e => setMembroForm({ ...membroForm, dataRegisto: e.target.value })} type="date" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Profissão/Ocupação</label><input value={membroForm.profissao} onChange={e => setMembroForm({ ...membroForm, profissao: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+
                     <div className="flex items-center space-x-12">
                       <div className="flex flex-col space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo Militante</label>
                         <div className="flex space-x-4">
-                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.tipo === 'Activo'} onChange={() => setMembroForm({...membroForm, tipo: 'Activo'})} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Activo</span></label>
-                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.tipo === 'Não Activo'} onChange={() => setMembroForm({...membroForm, tipo: 'Não Activo'})} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Inactivo</span></label>
+                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.tipo === 'Activo'} onChange={() => setMembroForm({ ...membroForm, tipo: 'Activo' })} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Activo</span></label>
+                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.tipo === 'Não Activo'} onChange={() => setMembroForm({ ...membroForm, tipo: 'Não Activo' })} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Inactivo</span></label>
                         </div>
                       </div>
 
                       <div className="flex flex-col space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Sexo</label>
                         <div className="flex space-x-4">
-                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.sexo === 'Masculino'} onChange={() => setMembroForm({...membroForm, sexo: 'Masculino'})} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Masc.</span></label>
-                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.sexo === 'Feminino'} onChange={() => setMembroForm({...membroForm, sexo: 'Feminino'})} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Fem.</span></label>
+                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.sexo === 'Masculino'} onChange={() => setMembroForm({ ...membroForm, sexo: 'Masculino' })} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Masc.</span></label>
+                          <label className="flex items-center space-x-2"><input type="radio" checked={membroForm.sexo === 'Feminino'} onChange={() => setMembroForm({ ...membroForm, sexo: 'Feminino' })} className="w-4 h-4" /><span className="text-[10px] font-black uppercase text-slate-900">Fem.</span></label>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Observações</label><input value={membroForm.observacoes} onChange={e => setMembroForm({...membroForm, observacoes: e.target.value})} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
+                    <div className="flex flex-col"><label className="text-[10px] font-bold text-slate-500 uppercase">Observações</label><input value={membroForm.observacoes} onChange={e => setMembroForm({ ...membroForm, observacoes: e.target.value })} type="text" className="border-b border-slate-300 py-1 font-black text-slate-900 outline-none focus:border-blue-600" /></div>
                   </div>
                 </div>
 
@@ -290,9 +326,9 @@ function PortalCadastroContent() {
                   <div className="space-y-4">
                     <div className="flex flex-col space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase px-4">Destinatários</label>
-                      <select 
+                      <select
                         value={msgForm.destinatario}
-                        onChange={(e) => setMsgForm({...msgForm, destinatario: e.target.value})}
+                        onChange={(e) => setMsgForm({ ...msgForm, destinatario: e.target.value })}
                         className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
                       >
                         <option>Todos os Militantes</option>
@@ -302,26 +338,26 @@ function PortalCadastroContent() {
 
                     <div className="flex flex-col space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase px-4">Corpo da Mensagem</label>
-                      <textarea 
-                        rows={4} 
+                      <textarea
+                        rows={4}
                         maxLength={100}
                         value={msgForm.corpo}
-                        onChange={(e) => setMsgForm({...msgForm, corpo: e.target.value})}
-                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-blue-600 resize-none h-40" 
+                        onChange={(e) => setMsgForm({ ...msgForm, corpo: e.target.value })}
+                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-blue-600 resize-none h-40"
                         placeholder="Escreva sua mensagem aqui..."
                       ></textarea>
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     if (msgForm.corpo.trim()) {
                       toast.success('Notificação enviada com sucesso!');
-                      setMsgForm({...msgForm, corpo: ''});
+                      setMsgForm({ ...msgForm, corpo: '' });
                     } else {
                       toast.error('Escreva uma mensagem primeiro!');
                     }
-                  }} 
+                  }}
                   className="w-full py-5 bg-slate-900 text-yellow-500 rounded-2xl font-black uppercase mt-8 hover:bg-slate-800 transition-all active:scale-95"
                 >
                   Disparar Notificações
