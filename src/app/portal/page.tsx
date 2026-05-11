@@ -23,65 +23,9 @@ import { usePortal } from '@/context/PortalContext';
 import GlobalSearch from '@/components/portal/GlobalSearch';
 import PortalModal from '@/components/portal/PortalModal';
 import React, { useState, useMemo, useRef } from 'react';
-import { MapPinIcon as MapPinSolid, PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
+import { MapPinIcon as MapPinSolid } from '@heroicons/react/24/solid';
 import { MUNICIPIOS_CUANZA_SUL } from '@/data/portalMock';
 
-function RadioPlayer() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-
-  const toggleRadio = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(e => console.error("Radio play error:", e));
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  return (
-    <div className="relative overflow-hidden p-8 rounded-[2.5rem] shadow-xl shadow-pure-yellow/20 ring-4 ring-yellow-100 h-full min-h-[250px]">
-      <img src="/partidoliberarbandeira.jpg" className="absolute inset-0 w-full h-full object-cover opacity-80" />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-
-      <audio ref={audioRef} src="https://paineldj5.com.br:20087/stream" preload="none" />
-
-      <div className="relative z-10 h-full flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-black tracking-tighter uppercase text-white shadow-sm">Nacional FM</h3>
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-red-600 animate-pulse' : 'bg-slate-400'}`} />
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{isPlaying ? 'No Ar' : 'Offline'}</p>
-            </div>
-          </div>
-          {/* Cabeçalho da Dashboard com Pesquisa Global     <p className="text-2xl font-black tracking-tighter mt-4 text-yellow-400 drop-shadow-lg">A VOZ DA MUDANÇA</p>
-               <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1 italic">Direto de Sumbe • 98.5 FM</p>*/}
-        </div>
-
-        <button
-          onClick={toggleRadio}
-          className={`w-full py-5 rounded-2xl font-black text-xs tracking-[0.2em] shadow-xl transition-all flex items-center justify-center space-x-3 active:scale-95 ${isPlaying ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-yellow-400 text-slate-900 hover:bg-yellow-500'
-            }`}
-        >
-          {isPlaying ? (
-            <>
-              <PauseIcon className="w-5 h-5" />
-              <span>PAUSAR EMISSÃO</span>
-            </>
-          ) : (
-            <>
-              <PlayIcon className="w-5 h-5" />
-              <span>OUVIR EM DIRECTO</span>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function PortalDashboard() {
   const { membros, nucleos, imoveis, viaturas, transacoes } = usePortal();
@@ -234,7 +178,6 @@ export default function PortalDashboard() {
             </div>
           </div>
 
-          <RadioPlayer />
         </div>
       </div>
 

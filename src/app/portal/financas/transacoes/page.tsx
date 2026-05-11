@@ -49,14 +49,18 @@ export default function HistoricoTransacoes() {
     }
   };
 
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'entrada' | 'saida' | 'reserva'>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [pesquisa, setPesquisa] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
   const transacoesFiltradas = transacoes.filter(t => {
-    const matchTipo = filtroTipo === 'todos' || t.tipo === filtroTipo;
+    const matchTipo = filtroTipo === 'todos' 
+      ? true 
+      : filtroTipo === 'reserva' 
+        ? t.categoria === 'Reserva' 
+        : t.tipo === filtroTipo;
     const matchCat = filtroCategoria === '' || t.categoria === filtroCategoria;
     const matchPesq = t.descricao.toLowerCase().includes(pesquisa.toLowerCase());
     const matchData = (!dataInicio || t.data >= dataInicio) && (!dataFim || t.data <= dataFim);
@@ -97,6 +101,7 @@ export default function HistoricoTransacoes() {
             { value: 'todos', label: 'Todas as Operações' },
             { value: 'entrada', label: 'Receitas' },
             { value: 'saida', label: 'Despesas' },
+            { value: 'reserva', label: 'Reserva Livre' },
           ].map(opt => (
             <button
               key={opt.value}

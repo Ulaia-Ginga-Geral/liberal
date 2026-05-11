@@ -11,7 +11,10 @@ import {
   ArrowDownTrayIcon,
   UserPlusIcon,
   IdentificationIcon,
-  MapPinIcon
+  MapPinIcon,
+  XMarkIcon,
+  DocumentArrowDownIcon,
+  PrinterIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePortal } from '@/context/PortalContext';
@@ -20,7 +23,9 @@ export default function ListaMembros() {
   const { membros } = usePortal();
   const [busca, setBusca] = useState('');
   const [filtroMunicipio, setFiltroMunicipio] = useState('Todas');
-  const [filtroIdade, setFiltroIdade] = useState('Todos');
+  const [idadeMin, setIdadeMin] = useState('');
+  const [idadeMax, setIdadeMax] = useState('');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const calcularIdade = (data: string) => {
     if (!data) return 0;
@@ -44,11 +49,8 @@ export default function ListaMembros() {
     
     // Filtro de Idade
     const idade = m.dataNascimento ? calcularIdade(m.dataNascimento) : 0;
-    let matchIdade = true;
-    if (filtroIdade === '18-25') matchIdade = idade >= 18 && idade <= 25;
-    else if (filtroIdade === '26-40') matchIdade = idade >= 26 && idade <= 40;
-    else if (filtroIdade === '41-60') matchIdade = idade >= 41 && idade <= 60;
-    else if (filtroIdade === '60+') matchIdade = idade > 60;
+    const matchIdade = (!idadeMin || idade >= parseInt(idadeMin)) && 
+                       (!idadeMax || idade <= parseInt(idadeMax));
 
     return matchBusca && matchMun && matchIdade;
   });
@@ -62,10 +64,13 @@ export default function ListaMembros() {
            <p className="text-sm text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 italic">Escritório Provincial • Gestão de Base</p>
         </div>
         <div className="flex space-x-3 w-full md:w-auto">
-           <button className="flex-1 md:flex-none flex items-center justify-center px-8 py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:border-yellow-400 transition-all shadow-sm">
+            <button 
+              onClick={() => setIsExportModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center px-8 py-4 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:border-yellow-400 transition-all shadow-sm"
+            >
               <ArrowDownTrayIcon className="w-5 h-5 mr-3 text-slate-400" />
               Exportar Base
-           </button>
+            </button>
            <Link 
             href="/portal/cadastro?tab=militantes"
             className="flex-1 md:flex-none flex items-center justify-center px-8 py-4 bg-yellow-400 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-xl shadow-yellow-500/20 hover:bg-yellow-500 transition-all active:scale-95"
@@ -112,23 +117,28 @@ export default function ListaMembros() {
                </select>
             </div>
 
-            {/* Filtro Idade */}
             <div className="lg:col-span-3 space-y-3">
                <div className="flex items-center space-x-2 ml-4">
                   <IdentificationIcon className="w-4 h-4 text-blue-500" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faixa Etária</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intervalo de Idade</span>
                </div>
-               <select 
-                  value={filtroIdade}
-                  onChange={(e) => setFiltroIdade(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] p-5 px-8 text-sm font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none cursor-pointer appearance-none"
-               >
-                  <option value="Todos">Todas as Idades</option>
-                  <option value="18-25">18 a 25 anos (Juventude)</option>
-                  <option value="26-40">26 a 40 anos (Ativos)</option>
-                  <option value="41-60">41 a 60 anos (Experientes)</option>
-                  <option value="60+">Mais de 60 anos (Veteranos)</option>
-               </select>
+               <div className="flex items-center space-x-2 bg-slate-50 border-2 border-transparent rounded-[2rem] p-2 px-4 focus-within:bg-white focus-within:border-blue-500 transition-all">
+                  <input 
+                    type="number" 
+                    placeholder="Min" 
+                    value={idadeMin}
+                    onChange={(e) => setIdadeMin(e.target.value)}
+                    className="w-full bg-transparent p-3 text-sm font-black text-slate-900 outline-none placeholder:text-slate-300"
+                  />
+                  <span className="text-slate-300 font-black">→</span>
+                  <input 
+                    type="number" 
+                    placeholder="Max" 
+                    value={idadeMax}
+                    onChange={(e) => setIdadeMax(e.target.value)}
+                    className="w-full bg-transparent p-3 text-sm font-black text-slate-900 outline-none placeholder:text-slate-300"
+                  />
+               </div>
             </div>
 
           </div>
@@ -194,6 +204,88 @@ export default function ListaMembros() {
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum militante encontrado para esta busca.</p>
          </div>
       )}
+
+      {/* Export Modal */}
+      <AnimatePresence>
+        {isExportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsExportModalOpen(false)} 
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+              className="relative bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-900 text-white shrink-0">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tighter uppercase italic">Exportar Base de Dados</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {membrosFiltrados.length} Membros Encontrados • {filtroMunicipio === 'Todas' ? 'Toda a Província' : filtroMunicipio}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button 
+                    onClick={() => {
+                      // Simular Download PDF
+                      toast.success('Gerando PDF da lista...');
+                      window.print();
+                    }}
+                    className="flex items-center px-6 py-3 bg-yellow-400 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-yellow-500 transition-all shadow-xl shadow-yellow-500/10"
+                  >
+                    <PrinterIcon className="w-4 h-4 mr-2" /> Baixar PDF
+                  </button>
+                  <button onClick={() => setIsExportModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+                <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-900 text-white">
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">ID</th>
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">Nome Completo</th>
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">B.I</th>
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">Município</th>
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">Idade</th>
+                        <th className="p-5 text-[10px] font-black uppercase tracking-widest border-b border-slate-800">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {membrosFiltrados.map((m) => (
+                        <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-5 text-[10px] font-black text-slate-400 font-mono">PL-{m.id.toString().padStart(4, '0')}</td>
+                          <td className="p-5 text-xs font-bold text-slate-900 uppercase">{m.nome}</td>
+                          <td className="p-5 text-xs font-bold text-slate-500 font-mono">{m.bi}</td>
+                          <td className="p-5 text-xs font-bold text-slate-500">{m.municipio || 'Sumbe'}</td>
+                          <td className="p-5 text-xs font-bold text-slate-500">{m.dataNascimento ? calcularIdade(m.dataNascimento) : 'N/A'}</td>
+                          <td className="p-5">
+                            <span className={`text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded-lg ${m.activo ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                              {m.activo ? 'Ativo' : 'Pendente'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div className="p-6 bg-white border-t border-slate-100 flex justify-center">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Documento Oficial • Partido Liberal • {new Date().toLocaleDateString()}</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

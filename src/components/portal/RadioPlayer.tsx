@@ -1,21 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { PlayIcon, PauseIcon, SpeakerWaveIcon } from '@heroicons/react/24/solid';
 
 interface RadioPlayerProps {
   name: string;
   station: string;
   color: string;
+  url: string;
 }
 
-export default function RadioPlayer({ name, station, color }: RadioPlayerProps) {
+export default function RadioPlayer({ name, station, color, url }: RadioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const toggleRadio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.error("Radio play error:", e));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
     <div className={`flex items-center space-x-3 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group`}>
+      <audio ref={audioRef} src={url} preload="none" />
       <button 
-        onClick={() => setIsPlaying(!isPlaying)}
+        onClick={toggleRadio}
         className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-slate-900 shadow-lg shadow-${color}/20 hover:scale-110 active:scale-95 transition-transform`}
       >
         {isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}

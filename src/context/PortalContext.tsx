@@ -109,6 +109,28 @@ export interface Documento {
   categoria?: string;
 }
 
+export interface HistoricoEstado {
+  id: number;
+  data: string;
+  estadoAnterior: string;
+  novoEstado: string;
+  foto: string;
+  causa: string;
+}
+
+export interface ItemInventario {
+  id: number;
+  nome: string;
+  categoria: string;
+  estado: 'Novo' | 'Bom' | 'Regular' | 'Danificado';
+  localizacao: string;
+  dataAquisicao: string;
+  origem: string;
+  foto?: string;
+  observacoes?: string;
+  historicoEstado?: HistoricoEstado[];
+}
+
 export interface Missao {
   id: number;
   titulo: string;
@@ -177,6 +199,13 @@ interface PortalContextType {
   addMissao: (missao: Omit<Missao, 'id'>) => void;
   deleteMissao: (id: number) => void;
   updateMissao: (id: number, missao: Partial<Missao>) => void;
+
+  // Inventário
+  inventario: ItemInventario[];
+  addItemInventario: (item: Omit<ItemInventario, 'id'>) => void;
+  updateItemInventario: (id: number, updated: Partial<ItemInventario>) => void;
+  deleteItemInventario: (id: number) => void;
+  alterarEstadoInventario: (id: number, novoEstado: ItemInventario['estado'], foto: string, causa: string) => void;
 }
 
 const PortalContext = createContext<PortalContextType | undefined>(undefined);
@@ -194,6 +223,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [saldo, setSaldo] = useState<number>(0); 
   const [reservaLivre, setReservaLivre] = useState<number>(0);
   const [missoes, setMissoes] = useState<Missao[]>([]);
+  const [inventario, setInventario] = useState<ItemInventario[]>([]);
   const logout = () => {
     localStorage.clear();
     window.location.href = '/login';
@@ -230,6 +260,10 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       { id: 2, titulo: "Missão Diplomática em Luanda", data: "2024-05-20", hora: "08:30", local: "Luanda - Aeroporto", responsavel: "Presidente Provincial" },
       { id: 3, titulo: "Mobilização em Calulo", data: "2024-06-02", hora: "14:00", local: "Calulo - Centro Cultural", responsavel: "Direcção de Mobilização" },
     ]));
+    setInventario(loadData('pl_inventario', [
+      { id: 1, nome: "Computador HP EliteBook", categoria: "TI & Informática", estado: "Bom", localizacao: "Sede Provincial Sumbe", dataAquisicao: "2023-10-15", origem: "Doação Direcção Nacional", observacoes: "Uso do Secretariado" },
+      { id: 2, nome: "Cadeira Presidencial", categoria: "Mobiliário", estado: "Novo", localizacao: "Gabinete do Presidente", dataAquisicao: "2024-01-20", origem: "Compra Própria", observacoes: "Couro Preto" },
+    ]));
 
     const savedSaldo = localStorage.getItem('pl_saldo');
     if (savedSaldo) setSaldo(Number(savedSaldo));
@@ -254,6 +288,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('pl_manutencoes', JSON.stringify(manutencoes));
     localStorage.setItem('pl_documentos', JSON.stringify(documentos));
     localStorage.setItem('pl_missoes', JSON.stringify(missoes));
+    localStorage.setItem('pl_inventario', JSON.stringify(inventario));
     localStorage.setItem('pl_saldo', saldo.toString());
     localStorage.setItem('pl_reserva_livre', reservaLivre.toString());
   }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo, reservaLivre]);
@@ -444,6 +479,42 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     setImoveis(imoveis.map(i => i.id === id ? { ...i, ...updated } : i));
   };
 
+  const addItemInventario = (i: Omit<ItemInventario, 'id'>) => {
+    const newDoc = { ...i, id: Date.now() };
+    setInventario([newDoc as ItemInventario, ...inventario]);
+  };
+
+  const updateItemInventario = (id: number, updated: Partial<ItemInventario>) => {
+    setInventario(inventario.map(item => item.id === id ? { ...item, ...updated } : item));
+  };
+
+  const deleteItemInventario = (id: number) => {
+    setInventario(inventario.filter(item => item.id !== id));
+  };
+
+  const alterarEstadoInventario = (id: number, novoEstado: ItemInventario['estado'], foto: string, causa: string) => {
+    setInventario(inventario.map(item => {
+      if (item.id === id) {
+        const historico = item.historicoEstado || [];
+        const novoRegistro: HistoricoEstado = {
+          id: Date.now(),
+          data: new Date().toISOString(),
+          estadoAnterior: item.estado,
+          novoEstado,
+          foto,
+          causa
+        };
+        return {
+          ...item,
+          estado: novoEstado,
+          foto: foto, // Atualiza a foto principal para a mais recente
+          historicoEstado: [novoRegistro, ...historico]
+        };
+      }
+      return item;
+    }));
+  };
+
   return (
     <PortalContext.Provider value={{ 
       membros, addMembro, updateMembro, deleteMembro, getMembro,
@@ -457,7 +528,8 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       manutencoes, addManutencao, deleteManutencao,
       documentos, addDocumento, deleteDocumento,
       getDividaAcumulada, getTotalGastoImovel, getTotalGastoViatura, logout,
-      missoes, addMissao, deleteMissao, updateMissao
+      missoes, addMissao, deleteMissao, updateMissao,
+      inventario, addItemInventario, updateItemInventario, deleteItemInventario, alterarEstadoInventario
     }}>
       {children}
     </PortalContext.Provider>

@@ -23,7 +23,8 @@ import {
   CreditCardIcon,
   TruckIcon,
   FolderPlusIcon,
-  ListBulletIcon
+  ListBulletIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 
 const portalNavigation = [
@@ -49,6 +50,7 @@ const portalNavigation = [
     items: [
       { name: 'Sedes e Imóveis', href: '/portal/patrimonio', icon: BuildingOffice2Icon },
       { name: 'Frota Automóvel', href: '/portal/patrimonio?tab=viaturas', icon: TruckIcon },
+      { name: 'Inventário de Ativos', href: '/portal/patrimonio/inventario', icon: ClipboardDocumentListIcon },
       { name: 'Documentação & Leis', href: '/portal/documentos', icon: DocumentTextIcon },
     ]
   },
@@ -119,12 +121,10 @@ export default function PortalSidebar() {
             </div>
           </div>
 
-          {/* Rádios com cores da área principal 
           <div className="px-4 py-4 space-y-2 bg-dark-blue/30 border-b border-blue-700">
-            <p className="text-[9px] font-black text-blue-200 uppercase px-2 mb-1 tracking-widest">Canais Live</p>
-            <RadioPlayer name="PL ONLINE" station="Rádio PL CS" color="bg-yellow-400 text-blue-900" />
-            <RadioPlayer name="RNA ONLINE" station="Nacional" color="bg-white text-blue-900" />
-          </div>*/}
+            <p className="text-[9px] font-black text-blue-200 uppercase px-2 mb-1 tracking-widest">Rádio em Direto</p>
+            <RadioPlayer name="RÁDIO NACIONAL" station="Emissão Online" color="bg-white text-blue-900" url="https://paineldj5.com.br:20087/stream" />
+          </div>
 
           {/* Navegação Categorizada com tema Azul/Amarelo */}
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto scrollbar-hide">
