@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePortal } from '@/context/PortalContext';
+import { toast } from 'react-hot-toast';
 
 export default function ListaMembros() {
   const { membros } = usePortal();
