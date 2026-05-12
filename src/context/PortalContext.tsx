@@ -140,9 +140,6 @@ export interface Missao {
   responsavel: string;
 }
 
-  responsavel: string;
-}
-
 export interface DadosSemanais {
   orcamentoMensal: number;
   orcamentoSemanal: number;
