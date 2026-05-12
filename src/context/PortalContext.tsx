@@ -140,6 +140,17 @@ export interface Missao {
   responsavel: string;
 }
 
+  responsavel: string;
+}
+
+export interface DadosSemanais {
+  orcamentoMensal: number;
+  orcamentoSemanal: number;
+  gastoSemana: number;
+  restanteSemana: number;
+  semanaAtual: number;
+}
+
 interface PortalContextType {
   // Membros
   membros: Membro[];
@@ -206,6 +217,10 @@ interface PortalContextType {
   updateItemInventario: (id: number, updated: Partial<ItemInventario>) => void;
   deleteItemInventario: (id: number) => void;
   alterarEstadoInventario: (id: number, novoEstado: ItemInventario['estado'], foto: string, causa: string) => void;
+  
+  // Orçamento Semanal
+  getDadosSemanais: () => DadosSemanais;
+  encerrarSemana: (semana: number) => void;
 }
 
 const PortalContext = createContext<PortalContextType | undefined>(undefined);
@@ -224,6 +239,8 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [reservaLivre, setReservaLivre] = useState<number>(0);
   const [missoes, setMissoes] = useState<Missao[]>([]);
   const [inventario, setInventario] = useState<ItemInventario[]>([]);
+  const [orcamentoMensal, setOrcamentoMensal] = useState<number>(5000000); // 5M padrão
+  const [semanasEncerradas, setSemanasEncerradas] = useState<number[]>([]);
   const logout = () => {
     localStorage.clear();
     window.location.href = '/login';
@@ -265,6 +282,12 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       { id: 2, nome: "Cadeira Presidencial", categoria: "Mobiliário", estado: "Novo", localizacao: "Gabinete do Presidente", dataAquisicao: "2024-01-20", origem: "Compra Própria", observacoes: "Couro Preto" },
     ]));
 
+    const savedOrcamento = localStorage.getItem('pl_orcamento_mensal');
+    if (savedOrcamento) setOrcamentoMensal(Number(savedOrcamento));
+
+    const savedSemanas = localStorage.getItem('pl_semanas_encerradas');
+    if (savedSemanas) setSemanasEncerradas(JSON.parse(savedSemanas));
+
     const savedSaldo = localStorage.getItem('pl_saldo');
     if (savedSaldo) setSaldo(Number(savedSaldo));
     else {
@@ -291,7 +314,9 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('pl_inventario', JSON.stringify(inventario));
     localStorage.setItem('pl_saldo', saldo.toString());
     localStorage.setItem('pl_reserva_livre', reservaLivre.toString());
-  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo, reservaLivre]);
+    localStorage.setItem('pl_orcamento_mensal', orcamentoMensal.toString());
+    localStorage.setItem('pl_semanas_encerradas', JSON.stringify(semanasEncerradas));
+  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo, reservaLivre, orcamentoMensal, semanasEncerradas]);
 
   // --- Funções Auxiliares de Persistência ---
   const saveData = <T,>(key: string, data: T[]): T[] => {
@@ -515,6 +540,58 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  const getDadosSemanais = (): DadosSemanais => {
+    const diaAtual = new Date().getDate();
+    let semanaAtual = 1;
+    if (diaAtual > 7 && diaAtual <= 14) semanaAtual = 2;
+    else if (diaAtual > 14 && diaAtual <= 21) semanaAtual = 3;
+    else if (diaAtual > 21) semanaAtual = 4;
+
+    const orcamentoSemanal = orcamentoMensal / 4;
+    
+    // Calcular gasto da semana atual (transações de saída aprovadas na semana atual)
+    const inicioSemana = (semanaAtual - 1) * 7 + 1;
+    const fimSemana = semanaAtual * 7 + (semanaAtual === 4 ? 10 : 0); // Ajuste para o fim do mês
+
+    const gastoSemana = transacoes
+      .filter(t => {
+        const tDate = new Date(t.data);
+        const tDia = tDate.getDate();
+        const tMes = tDate.getMonth();
+        const tAno = tDate.getFullYear();
+        const agora = new Date();
+        
+        return t.tipo === 'saida' && 
+               t.status === 'Aprovado' && 
+               tDia >= inicioSemana && 
+               tDia <= fimSemana &&
+               tMes === agora.getMonth() &&
+               tAno === agora.getFullYear();
+      })
+      .reduce((acc, t) => acc + t.valor, 0);
+
+    return {
+      orcamentoMensal,
+      orcamentoSemanal,
+      gastoSemana,
+      restanteSemana: orcamentoSemanal - gastoSemana,
+      semanaAtual
+    };
+  };
+
+  const encerrarSemana = (semana: number) => {
+    if (semanasEncerradas.includes(semana)) return;
+    
+    const dados = getDadosSemanais();
+    const sobra = dados.orcamentoSemanal - dados.gastoSemana;
+    
+    if (sobra > 0) {
+      transferirParaReserva(sobra);
+    }
+    
+    setSemanasEncerradas([...semanasEncerradas, semana]);
+  };
+
   return (
     <PortalContext.Provider value={{ 
       membros, addMembro, updateMembro, deleteMembro, getMembro,
@@ -529,7 +606,8 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       documentos, addDocumento, deleteDocumento,
       getDividaAcumulada, getTotalGastoImovel, getTotalGastoViatura, logout,
       missoes, addMissao, deleteMissao, updateMissao,
-      inventario, addItemInventario, updateItemInventario, deleteItemInventario, alterarEstadoInventario
+      inventario, addItemInventario, updateItemInventario, deleteItemInventario, alterarEstadoInventario,
+      getDadosSemanais, encerrarSemana
     }}>
       {children}
     </PortalContext.Provider>
