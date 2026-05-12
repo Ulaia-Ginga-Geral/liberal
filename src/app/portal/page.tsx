@@ -13,6 +13,7 @@ import {
   GlobeAltIcon,
   BellIcon,
   SignalIcon,
+  ChevronRightIcon,
   CurrencyDollarIcon,
   ClockIcon,
   ShieldCheckIcon,
