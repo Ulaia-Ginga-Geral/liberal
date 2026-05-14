@@ -15,9 +15,7 @@ import {
   SignalIcon,
   ChevronRightIcon,
   CurrencyDollarIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ExclamationCircleIcon
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
@@ -32,10 +30,8 @@ import { MUNICIPIOS_CUANZA_SUL } from '@/data/portalMock';
 
 
 export default function PortalDashboard() {
-  const { membros, nucleos, imoveis, viaturas, transacoes, saldo, reservaLivre, getDadosSemanais, encerrarSemana } = usePortal();
+  const { membros, nucleos, imoveis, viaturas, transacoes, saldo, saldoConsolidado, reservaLivre } = usePortal();
   const [showMap, setShowMap] = useState(false);
-  
-  const dadosSemanais = getDadosSemanais();
 
   // Lógica para o Gráfico de Militância Real
   const chartData = useMemo(() => {
@@ -110,9 +106,9 @@ export default function PortalDashboard() {
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
             <CurrencyDollarIcon className="w-24 h-24" />
           </div>
-          <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">Saldo Principal</p>
+          <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">Patrimônio Financeiro (Total)</p>
           <div className="flex items-end space-x-2">
-            <h3 className="text-3xl font-black tracking-tighter">{saldo.toLocaleString()} Kz</h3>
+            <h3 className="text-3xl font-black tracking-tighter">{saldoConsolidado.toLocaleString()} Kz</h3>
           </div>
         </motion.div>
 
@@ -148,107 +144,6 @@ export default function PortalDashboard() {
             </div>
           </motion.div>
         ))}
-      </div>
-
-      {/* Gestão Orçamental Semanal */}
-      <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">Gestão Orçamental Semanal</h3>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Otimização de Gastos • Ciclo de 4 Semanas</p>
-          </div>
-          <div className="flex items-center space-x-4 bg-slate-50 p-2 rounded-2xl">
-            <div className="text-right px-4 border-r border-slate-200">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Orçamento Semanal</p>
-              <p className="text-lg font-black text-slate-900">{dadosSemanais.orcamentoSemanal.toLocaleString()} Kz</p>
-            </div>
-            <button 
-              onClick={() => {
-                if(confirm(`Deseja encerrar a Semana ${dadosSemanais.semanaAtual} e transferir ${dadosSemanais.restanteSemana.toLocaleString()} Kz para a Reserva Livre?`)) {
-                  encerrarSemana(dadosSemanais.semanaAtual);
-                }
-              }}
-              className="bg-slate-900 text-yellow-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
-            >
-              Encerrar Semana {dadosSemanais.semanaAtual}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((sem) => {
-            const isCurrent = sem === dadosSemanais.semanaAtual;
-            const progress = isCurrent ? Math.min((dadosSemanais.gastoSemana / dadosSemanais.orcamentoSemanal) * 100, 100) : (sem < dadosSemanais.semanaAtual ? 100 : 0);
-            const isWarning = isCurrent && progress >= 80;
-            const isCritical = isCurrent && progress >= 100;
-
-            return (
-              <div key={sem} className={`p-6 rounded-[2rem] border-2 transition-all ${
-                isCurrent ? 'border-blue-600 bg-blue-50/30' : 'border-slate-50 bg-slate-50/20'
-              }`}>
-                <div className="flex justify-between items-center mb-4">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${isCurrent ? 'text-blue-600' : 'text-slate-400'}`}>Semana {sem}</p>
-                  {isCurrent && <span className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse">ATUAL</span>}
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <h4 className={`text-2xl font-black tracking-tighter ${isCurrent ? 'text-slate-900' : 'text-slate-400'}`}>
-                      {isCurrent ? dadosSemanais.gastoSemana.toLocaleString() : '0'} <span className="text-[10px]">Kz</span>
-                    </h4>
-                    <p className="text-[10px] font-bold text-slate-400 italic">/{dadosSemanais.orcamentoSemanal.toLocaleString()}</p>
-                  </div>
-
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress}%` }}
-                      className={`h-full rounded-full ${
-                        isCritical ? 'bg-red-500' : (isWarning ? 'bg-yellow-400' : 'bg-blue-600')
-                      }`}
-                    />
-                  </div>
-
-                  {isCurrent && (
-                    <div className="space-y-2">
-                      {isCritical ? (
-                        <div className="flex items-center text-[10px] font-black text-red-600 uppercase tracking-tighter italic">
-                          <ExclamationCircleIcon className="w-3 h-3 mr-1" /> Orçamento Excedido!
-                        </div>
-                      ) : (isWarning ? (
-                        <div className="flex items-center text-[10px] font-black text-yellow-600 uppercase tracking-tighter italic">
-                          <ClockIcon className="w-3 h-3 mr-1" /> Limite Próximo (80%+)
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-[10px] font-black text-green-600 uppercase tracking-tighter italic">
-                          <ShieldCheckIcon className="w-3 h-3 mr-1" /> Gestão Saudável
-                        </div>
-                      ))}
-                      <p className="text-[9px] text-slate-400 font-bold">Disponível: {Math.max(0, dadosSemanais.restanteSemana).toLocaleString()} Kz</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Alerta Global de Orçamento */}
-        {dadosSemanais.restanteSemana < 0 && (
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="mt-8 p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] flex items-center space-x-6"
-          >
-            <div className="p-4 bg-red-100 rounded-2xl">
-              <ExclamationCircleIcon className="w-8 h-8 text-red-600" />
-            </div>
-            <div>
-              <h4 className="text-lg font-black text-red-900 tracking-tighter uppercase italic leading-none">ALERTA DE CRISE FINANCEIRA</h4>
-              <p className="text-xs text-red-700 font-medium mt-1">O orçamento desta semana foi excedido em {Math.abs(dadosSemanais.restanteSemana).toLocaleString()} Kz. Favor priorizar gastos essenciais.</p>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

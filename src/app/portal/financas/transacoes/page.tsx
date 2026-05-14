@@ -40,7 +40,7 @@ const categoriaCor: Record<string, string> = {
 };
 
 export default function HistoricoTransacoes() {
-  const { transacoes, saldo, deleteTransacao } = usePortal();
+  const { transacoes, saldo, saldoConsolidado, deleteTransacao } = usePortal();
 
   const handleDelete = (id: number) => {
     if (confirm('Deseja realmente excluir este registro financeiro? O saldo atual não será afetado retroativamente.')) {
@@ -87,8 +87,8 @@ export default function HistoricoTransacoes() {
         <div className="flex items-center space-x-4 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl shadow-black/20">
           <BanknotesIcon className="w-6 h-6 text-yellow-400" />
           <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saldo Actual</p>
-            <p className="text-lg font-black italic">{saldo.toLocaleString()} <span className="text-xs text-yellow-400">Kz</span></p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saldo Consolidado (Total)</p>
+            <p className="text-lg font-black italic">{saldoConsolidado.toLocaleString()} <span className="text-xs text-yellow-400">Kz</span></p>
           </div>
         </div>
       </div>

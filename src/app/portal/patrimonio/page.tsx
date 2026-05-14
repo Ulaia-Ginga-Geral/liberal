@@ -38,7 +38,8 @@ function PatrimonioPageContent() {
       getDividaAcumulada,
       getTotalGastoImovel,
       getTotalGastoViatura,
-      saldo 
+      saldo,
+      saldoConsolidado
    } = usePortal();
 
    const searchParams = useSearchParams();
@@ -191,8 +192,8 @@ function PatrimonioPageContent() {
             {activeTab === 'imoveis' ? (
                <>
                   <div className="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/20">
-                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Saldo em Caixa (PL)</p>
-                     <p className="text-3xl font-black italic">{saldo.toLocaleString()} Kz</p>
+                     <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Patrimônio Financeiro (PL)</p>
+                     <p className="text-3xl font-black italic">{saldoConsolidado.toLocaleString()} Kz</p>
                   </div>
                   <div className="bg-yellow-400 p-8 rounded-[2.5rem] text-slate-900 shadow-xl shadow-yellow-500/20">
                      <p className="text-[10px] font-black text-yellow-800 uppercase tracking-widest mb-2">Dívidas Acumuladas</p>

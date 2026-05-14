@@ -22,6 +22,9 @@ import {
    CloudArrowUpIcon,
    UserGroupIcon,
    IdentificationIcon,
+   ClockIcon,
+   ShieldCheckIcon,
+   ExclamationCircleIcon,
    BanknotesIcon as BanknotesSolid
 } from '@heroicons/react/24/outline';
 import PortalModal from '@/components/portal/PortalModal';
@@ -32,10 +35,13 @@ const MUNICIPIOS_CUANZA_SUL = ['Sumbe', 'Amboim', 'Cela', 'Cassongue', 'Conda', 
 
 export default function FinancasDashboard() {
    const {
-      saldo, reservaLivre, transacoes, addTransacao,
+      saldo, saldoConsolidado, reservaLivre, transacoes, addTransacao,
       transferirParaReserva, transferirParaSaldo,
-      imoveis, viaturas, membros, updateImovel
+      imoveis, viaturas, membros, updateImovel,
+      getDadosSemanais, encerrarSemana
    } = usePortal();
+   
+   const dadosSemanais = getDadosSemanais();
    const [showAddModal, setShowAddModal] = useState(false);
    const [showTransferModal, setShowTransferModal] = useState(false);
    const [showRendaModal, setShowRendaModal] = useState(false);
@@ -306,8 +312,29 @@ export default function FinancasDashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         className="text-7xl font-black italic tracking-tighter"
                      >
-                        {saldo.toLocaleString('pt-AO')} <span className="text-3xl text-yellow-500 non-italic">Kz</span>
+                        {saldoConsolidado.toLocaleString('pt-AO')} <span className="text-3xl text-yellow-500 non-italic">Kz</span>
                      </motion.h2>
+                     
+                     <div className="mt-8 flex flex-wrap gap-6">
+                        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[160px]">
+                           <p className="text-[9px] font-black text-blue-200/50 uppercase tracking-widest mb-1">Saldo Disponível</p>
+                           <p className="text-lg font-black">{saldo.toLocaleString()} Kz</p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[160px]">
+                           <p className="text-[9px] font-black text-blue-200/50 uppercase tracking-widest mb-1">Reserva Livre</p>
+                           <p className="text-lg font-black">{reservaLivre.toLocaleString()} Kz</p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[160px]">
+                           <p className="text-[9px] font-black text-blue-200/50 uppercase tracking-widest mb-1">Sobrou da Sem. Anterior</p>
+                           <p className={`text-lg font-black ${dadosSemanais.sobraSemanaAnterior >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {dadosSemanais.sobraSemanaAnterior.toLocaleString()} Kz
+                           </p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[160px]">
+                           <p className="text-[9px] font-black text-blue-200/50 uppercase tracking-widest mb-1">Próximas Semanas (Total)</p>
+                           <p className="text-lg font-black">{dadosSemanais.totalProximasSemanas.toLocaleString()} Kz</p>
+                        </div>
+                     </div>
                   </div>
 
                   <div className="mt-12 grid grid-cols-2 gap-8 pt-8 border-t border-white/10">
@@ -391,8 +418,124 @@ export default function FinancasDashboard() {
             </div>
          </div>
 
+         {/* Gestão Orçamental Semanal */}
+         <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+               <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">Gestão Orçamental Semanal</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Otimização de Fluxo • Ciclo de 4 Semanas</p>
+               </div>
+               <div className="flex items-center space-x-6 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                  <div className="text-right px-6 border-r border-slate-200">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Limite Semanal</p>
+                     <p className="text-xl font-black text-slate-900">{dadosSemanais.orcamentoSemanal.toLocaleString()} Kz</p>
+                  </div>
+                  <button 
+                     onClick={() => {
+                        if(confirm(`Deseja encerrar a Semana ${dadosSemanais.semanaAtual} e transferir ${dadosSemanais.restanteSemana.toLocaleString()} Kz para a Reserva Livre?`)) {
+                           encerrarSemana(dadosSemanais.semanaAtual);
+                           toast.success(`Semana ${dadosSemanais.semanaAtual} encerrada!`);
+                        }
+                     }}
+                     className="bg-slate-900 text-yellow-400 px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-black/10"
+                  >
+                     Encerrar Semana {dadosSemanais.semanaAtual}
+                  </button>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+               {[1, 2, 3, 4].map((sem) => {
+                  const isCurrent = sem === dadosSemanais.semanaAtual;
+                  const progress = isCurrent ? Math.min((dadosSemanais.gastoSemana / dadosSemanais.orcamentoSemanal) * 100, 100) : (sem < dadosSemanais.semanaAtual ? 100 : 0);
+                  const isWarning = isCurrent && progress >= 80;
+                  const isCritical = isCurrent && progress >= 100;
+
+                  return (
+                     <div key={sem} className={`p-8 rounded-[2.5rem] border-2 transition-all ${
+                        isCurrent ? 'border-blue-600 bg-blue-50/30' : 'border-slate-50 bg-slate-50/20'
+                     }`}>
+                        <div className="flex justify-between items-center mb-6">
+                           <p className={`text-[10px] font-black uppercase tracking-widest ${isCurrent ? 'text-blue-600' : 'text-slate-400'}`}>Semana {sem}</p>
+                           {isCurrent && (
+                              <div className="flex items-center space-x-2">
+                                 <span className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
+                                 <span className="text-[9px] font-black text-blue-600 uppercase">Período Ativo</span>
+                              </div>
+                           )}
+                        </div>
+                        
+                        <div className="space-y-6">
+                           <div className="flex justify-between items-end">
+                              <div>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Gasto Acumulado</p>
+                                 <h4 className={`text-2xl font-black tracking-tighter ${isCurrent ? 'text-slate-900' : 'text-slate-400'}`}>
+                                    {isCurrent ? dadosSemanais.gastoSemana.toLocaleString() : (sem < dadosSemanais.semanaAtual ? dadosSemanais.orcamentoSemanal.toLocaleString() : '0')} <span className="text-xs">Kz</span>
+                                 </h4>
+                              </div>
+                           </div>
+
+                           <div className="h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                              <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${progress}%` }}
+                                 className={`h-full rounded-full ${
+                                    isCritical ? 'bg-red-500' : (isWarning ? 'bg-yellow-400' : 'bg-blue-600')
+                                 } shadow-sm`}
+                              />
+                           </div>
+
+                           {isCurrent && (
+                              <div className="space-y-4 pt-2">
+                                 <div className="flex items-center justify-between">
+                                    {isCritical ? (
+                                       <div className="flex items-center text-[10px] font-black text-red-600 uppercase italic">
+                                          <ExclamationCircleIcon className="w-4 h-4 mr-1.5" /> Excedido
+                                       </div>
+                                    ) : (isWarning ? (
+                                       <div className="flex items-center text-[10px] font-black text-yellow-600 uppercase italic">
+                                          <ClockIcon className="w-4 h-4 mr-1.5" /> Limite (80%+)
+                                       </div>
+                                    ) : (
+                                       <div className="flex items-center text-[10px] font-black text-green-600 uppercase italic">
+                                          <ShieldCheckIcon className="w-4 h-4 mr-1.5" /> Sob Controle
+                                       </div>
+                                    ))}
+                                    <p className="text-xs font-black text-slate-900">{progress.toFixed(0)}%</p>
+                                 </div>
+                                 <div className="p-4 bg-white/50 rounded-2xl border border-white/50">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Saldo Restante</p>
+                                    <p className={`text-sm font-black text-center ${dadosSemanais.restanteSemana < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                       {Math.max(0, dadosSemanais.restanteSemana).toLocaleString()} Kz
+                                    </p>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  );
+               })}
+            </div>
+            
+            {dadosSemanais.restanteSemana < 0 && (
+               <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="mt-10 p-8 bg-red-50 border-2 border-red-100 rounded-[3rem] flex items-center space-x-8"
+               >
+                  <div className="p-5 bg-white rounded-3xl shadow-xl shadow-red-200/50">
+                     <ExclamationCircleIcon className="w-10 h-10 text-red-600" />
+                  </div>
+                  <div>
+                     <h4 className="text-2xl font-black text-red-900 tracking-tighter uppercase italic leading-none">ALERTA DE SEGURANÇA FINANCEIRA</h4>
+                     <p className="text-sm text-red-700 font-bold mt-2">O teto orçamental semanal foi ultrapassado. Bloqueie despesas não-essenciais imediatamente para evitar colapso no fluxo de caixa.</p>
+                  </div>
+               </motion.div>
+            )}
+         </div>
+
          {/* Grid de Saldos Secundários */}
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
             <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm relative overflow-hidden group">
                <div className="relative z-10">
                   <div className="flex items-center justify-between mb-6">

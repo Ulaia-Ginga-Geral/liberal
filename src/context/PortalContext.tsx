@@ -146,6 +146,8 @@ export interface DadosSemanais {
   gastoSemana: number;
   restanteSemana: number;
   semanaAtual: number;
+  sobraSemanaAnterior: number;
+  totalProximasSemanas: number;
 }
 
 interface PortalContextType {
@@ -178,6 +180,7 @@ interface PortalContextType {
 
   // Finanças
   saldo: number;
+  saldoConsolidado: number;
   transacoes: Transacao[];
   addTransacao: (transacao: Omit<Transacao, 'id'>) => void;
   deleteTransacao: (id: number) => void;
@@ -232,12 +235,19 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
-  const [saldo, setSaldo] = useState<number>(0); 
   const [reservaLivre, setReservaLivre] = useState<number>(0);
   const [missoes, setMissoes] = useState<Missao[]>([]);
   const [inventario, setInventario] = useState<ItemInventario[]>([]);
   const [orcamentoMensal, setOrcamentoMensal] = useState<number>(5000000); // 5M padrão
   const [semanasEncerradas, setSemanasEncerradas] = useState<number[]>([]);
+
+  // Saldo derivado dinamicamente das transações aprovadas (Saldo Operacional)
+  const saldo = transacoes
+    .filter(t => t.status === 'Aprovado')
+    .reduce((acc, t) => t.tipo === 'entrada' ? acc + t.valor : acc - t.valor, 0);
+
+  const saldoConsolidado = saldo + reservaLivre;
+
   const logout = () => {
     localStorage.clear();
     window.location.href = '/login';
@@ -257,15 +267,27 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     setMilitantes(loadData('pl_militantes', militantesMock as Membro[]));
     setNucleos(loadData('pl_nucleos', nucleosMock));
     
-    const transacoesIniciais: Transacao[] = historicoMock.map((h, i) => ({
-      id: i + 1,
-      data: h.data,
-      descricao: `Manutenção: ${h.acao} (${h.vtr})`,
-      valor: parseInt(h.custo.replace(/\./g, '').replace(' Kz', '')),
-      tipo: 'saida',
-      categoria: 'Viatura',
-      status: 'Aprovado'
-    }));
+    // Saldo inicial: transações do mock + uma entrada inicial de capital
+    const transacoesIniciais: Transacao[] = [
+      {
+        id: 1,
+        data: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        descricao: 'Dotação Orçamental Mensal - Direcção Nacional',
+        valor: 10000000, // 10M Kz capital inicial
+        tipo: 'entrada',
+        categoria: 'Administrativo',
+        status: 'Aprovado'
+      },
+      ...historicoMock.map((h, i) => ({
+        id: i + 2,
+        data: h.data,
+        descricao: `Manutenção: ${h.acao} (${h.vtr})`,
+        valor: parseInt(h.custo.replace(/\./g, '').replace(' Kz', '')),
+        tipo: 'saida' as const,
+        categoria: 'Viatura' as const,
+        status: 'Aprovado' as const
+      }))
+    ];
     setTransacoes(loadData('pl_transacoes', transacoesIniciais));
     setManutencoes(loadData('pl_manutencoes', historicoMock as Manutencao[]));
     setDocumentos(loadData('pl_documentos', []));
@@ -285,14 +307,6 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     const savedSemanas = localStorage.getItem('pl_semanas_encerradas');
     if (savedSemanas) setSemanasEncerradas(JSON.parse(savedSemanas));
 
-    const savedSaldo = localStorage.getItem('pl_saldo');
-    if (savedSaldo) setSaldo(Number(savedSaldo));
-    else {
-      // Calcular saldo inicial baseado em transações se não houver saldo salvo
-      const total = transacoesIniciais.reduce((acc, t) => t.tipo === 'entrada' ? acc + t.valor : acc - t.valor, 0);
-      setSaldo(total);
-    }
-
     const savedReserva = localStorage.getItem('pl_reserva_livre');
     if (savedReserva) setReservaLivre(Number(savedReserva));
   }, []);
@@ -309,11 +323,11 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('pl_documentos', JSON.stringify(documentos));
     localStorage.setItem('pl_missoes', JSON.stringify(missoes));
     localStorage.setItem('pl_inventario', JSON.stringify(inventario));
-    localStorage.setItem('pl_saldo', saldo.toString());
+    // Nota: saldo é derivado das transações, não precisa ser salvo separadamente
     localStorage.setItem('pl_reserva_livre', reservaLivre.toString());
     localStorage.setItem('pl_orcamento_mensal', orcamentoMensal.toString());
     localStorage.setItem('pl_semanas_encerradas', JSON.stringify(semanasEncerradas));
-  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, saldo, reservaLivre, orcamentoMensal, semanasEncerradas]);
+  }, [membros, usuarios, viaturas, imoveis, nucleos, transacoes, manutencoes, documentos, missoes, inventario, reservaLivre, orcamentoMensal, semanasEncerradas]);
 
   // --- Funções Auxiliares de Persistência ---
   const saveData = <T,>(key: string, data: T[]): T[] => {
@@ -377,12 +391,9 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     setTransacoes(prev => saveData('pl_transacoes', prev.filter(t => t.id !== id)));
   };
 
-  const atualizarSaldoEDeducoes = (t: Transacao) => {
-    if (t.tipo === 'entrada') {
-      setSaldo(prev => prev + t.valor);
-    } else {
-      setSaldo(prev => prev - t.valor);
-    }
+  // saldo é derivado das transações automaticamente — sem necessidade de atualização manual
+  const atualizarSaldoEDeducoes = (_t: Transacao) => {
+    // No-op: saldo é recalculado automaticamente de `transacoes`
   };
 
   const aprovarTransacao = (id: number) => {
@@ -400,7 +411,9 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const transferirParaReserva = (valor: number) => {
-    if (valor > saldo) return;
+    // Saldo operacional = saldo total - reserva já alocada
+    const saldoOperacional = saldo - reservaLivre;
+    if (valor > saldoOperacional) return;
     
     const t: Omit<Transacao, 'id'> = {
       data: new Date().toISOString().split('T')[0],
@@ -538,41 +551,68 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getDadosSemanais = (): DadosSemanais => {
-    const diaAtual = new Date().getDate();
+    const agora = new Date();
+    const mesAtual = agora.getMonth();
+    const anoAtual = agora.getFullYear();
+
+    // Determinar a semana atual (1 a 4)
+    const diaAtual = agora.getDate();
     let semanaAtual = 1;
     if (diaAtual > 7 && diaAtual <= 14) semanaAtual = 2;
     else if (diaAtual > 14 && diaAtual <= 21) semanaAtual = 3;
     else if (diaAtual > 21) semanaAtual = 4;
 
-    const orcamentoSemanal = orcamentoMensal / 4;
+    // Calcular Gastos por Semana no mês atual
+    const gastosPorSemana = { 1: 0, 2: 0, 3: 0, 4: 0 };
     
-    // Calcular gasto da semana atual (transações de saída aprovadas na semana atual)
-    const inicioSemana = (semanaAtual - 1) * 7 + 1;
-    const fimSemana = semanaAtual * 7 + (semanaAtual === 4 ? 10 : 0); // Ajuste para o fim do mês
-
-    const gastoSemana = transacoes
-      .filter(t => {
+    transacoes.forEach(t => {
+      if (t.tipo === 'saida' && t.status === 'Aprovado' && t.categoria !== 'Reserva') {
         const tDate = new Date(t.data);
-        const tDia = tDate.getDate();
-        const tMes = tDate.getMonth();
-        const tAno = tDate.getFullYear();
-        const agora = new Date();
-        
-        return t.tipo === 'saida' && 
-               t.status === 'Aprovado' && 
-               tDia >= inicioSemana && 
-               tDia <= fimSemana &&
-               tMes === agora.getMonth() &&
-               tAno === agora.getFullYear();
-      })
-      .reduce((acc, t) => acc + t.valor, 0);
+        if (tDate.getMonth() === mesAtual && tDate.getFullYear() === anoAtual) {
+          const tDia = tDate.getDate();
+          let s = 1;
+          if (tDia > 7 && tDia <= 14) s = 2;
+          else if (tDia > 14 && tDia <= 21) s = 3;
+          else if (tDia > 21) s = 4;
+          gastosPorSemana[s as 1|2|3|4] += t.valor;
+        }
+      }
+    });
+
+    const gastoSemana = gastosPorSemana[semanaAtual as 1|2|3|4];
+
+    // O Orçamento Base Mensal é configurado, mas limitado pelo saldo real disponível + o que já foi gasto
+    // Isso evita que o orçamento mostre saldo positivo se não houver dinheiro no caixa.
+    const totalGastoOperacionalMes = Object.values(gastosPorSemana).reduce((a, b) => a + b, 0);
+    const caixaDisponivelMes = saldo + totalGastoOperacionalMes;
+    
+    // O orçamento real do mês não pode ser maior que o que tínhamos disponível
+    const orcamentoRealMes = Math.min(orcamentoMensal, caixaDisponivelMes);
+    const orcamentoSemanalBase = orcamentoRealMes / 4;
+
+    // Cálculo da Sobra da Semana Anterior
+    let sobraSemanaAnterior = 0;
+    if (semanaAtual > 1) {
+      const orcamentoAcumuladoAteAnterior = orcamentoSemanalBase * (semanaAtual - 1);
+      let gastoAcumuladoAteAnterior = 0;
+      for (let i = 1; i < semanaAtual; i++) {
+        gastoAcumuladoAteAnterior += gastosPorSemana[i as 1|2|3|4];
+      }
+      sobraSemanaAnterior = orcamentoAcumuladoAteAnterior - gastoAcumuladoAteAnterior;
+    }
+
+    // Projeção para as próximas semanas
+    const semanasRestantes = 4 - semanaAtual;
+    const totalProximasSemanas = orcamentoSemanalBase * semanasRestantes;
 
     return {
-      orcamentoMensal,
-      orcamentoSemanal,
+      orcamentoMensal: orcamentoRealMes,
+      orcamentoSemanal: orcamentoSemanalBase,
       gastoSemana,
-      restanteSemana: orcamentoSemanal - gastoSemana,
-      semanaAtual
+      restanteSemana: (orcamentoSemanalBase + sobraSemanaAnterior) - gastoSemana,
+      semanaAtual,
+      sobraSemanaAnterior,
+      totalProximasSemanas
     };
   };
 
@@ -597,7 +637,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       nucleos, addNucleo, deleteNucleo,
       viaturas, addViatura, deleteViatura,
       imoveis, addImovel, deleteImovel, updateImovel,
-      saldo, reservaLivre, transacoes, addTransacao, deleteTransacao, aprovarTransacao,
+      saldo, saldoConsolidado, reservaLivre, transacoes, addTransacao, deleteTransacao, aprovarTransacao,
       transferirParaReserva, transferirParaSaldo,
       manutencoes, addManutencao, deleteManutencao,
       documentos, addDocumento, deleteDocumento,
